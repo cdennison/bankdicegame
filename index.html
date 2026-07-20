@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1020">
+  <meta name="description" content="Challenge a live AI in Bank It, a push-your-luck dice game where probability gives you the edge. Play the game, question the machine, and crack the strategy.">
+  <meta property="og:title" content="Bank It — Crack the Strategy. Beat the AI.">
+  <meta property="og:description" content="One pot. One decision. A live AI across the table. Can you crack the strategy?">
+  <meta property="og:type" content="website">
+  <title>Bank It — Crack the Strategy. Beat the AI.</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="icon-die" viewBox="0 0 24 24">
+      <rect x="2.5" y="2.5" width="19" height="19" rx="4"></rect>
+      <circle cx="8" cy="8" r="1.25" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="8" r="1.25" fill="currentColor" stroke="none"></circle>
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none"></circle>
+      <circle cx="8" cy="16" r="1.25" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="16" r="1.25" fill="currentColor" stroke="none"></circle>
+    </symbol>
+    <symbol id="icon-scan" viewBox="0 0 24 24">
+      <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M6 12h12"></path>
+    </symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24">
+      <path d="M5 12h14M14 7l5 5-5 5"></path>
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 3 5 6v5c0 4.6 2.8 8 7 10 4.2-2 7-5.4 7-10V6l-7-3Z"></path>
+      <path d="m9 12 2 2 4-5"></path>
+    </symbol>
+    <symbol id="icon-branch" viewBox="0 0 24 24">
+      <circle cx="6" cy="5" r="2"></circle><circle cx="18" cy="7" r="2"></circle><circle cx="18" cy="18" r="2"></circle>
+      <path d="M6 7v4c0 4 3 7 7 7h3M8 8c2 0 3-1 4-2s2-1 4-1"></path>
+    </symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>
+    </symbol>
+    <symbol id="icon-code" viewBox="0 0 24 24">
+      <path d="m8 6-6 6 6 6M16 6l6 6-6 6M14 3l-4 18"></path>
+    </symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24">
+      <path d="M4 7h16M4 12h16M4 17h16"></path>
+    </symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path d="m5 5 14 14M19 5 5 19"></path>
+    </symbol>
+  </svg>
+
+  <header class="site-header" id="top">
+    <div class="nav-shell">
+      <a class="brand" href="#top" aria-label="Bank It home">
+        <span class="brand-mark" aria-hidden="true"><svg><use href="#icon-die"></use></svg></span>
+        <span>BANK IT</span>
+      </a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        <span class="sr-only">Open navigation</span>
+        <svg class="menu-open"><use href="#icon-menu"></use></svg>
+        <svg class="menu-close"><use href="#icon-close"></use></svg>
+      </button>
+      <nav class="site-nav" id="site-nav" aria-label="Primary navigation">
+        <a href="#how-to-play">How to play</a>
+        <a href="#ai-opponents">The AI</a>
+        <a class="strategy-nav" href="/learn/">Crack the strategy</a>
+        <a class="nav-play" href="/game/">Play now <svg><use href="#icon-arrow"></use></svg></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero section-dark">
+      <div class="hero-grid page-shell">
+        <div class="hero-copy" data-reveal>
+          <p class="eyebrow"><span class="live-dot"></span>A dice game. A live AI. Your move.</p>
+          <h1>Crack the strategy.<br><span>Beat the machine.</span></h1>
+          <p class="hero-lede">Bank It turns a push-your-luck dice game into a live battle of probability and AI. Make your call, see what the machine chooses, and uncover the math that can give you the edge.</p>
+          <div class="hero-actions">
+            <a class="button button-coral" href="/game/">Play against the AI <svg><use href="#icon-arrow"></use></svg></a>
+            <a class="button button-outline" href="/learn/"><svg><use href="#icon-scan"></use></svg> Crack the strategy</a>
+          </div>
+          <p class="microcopy">The rules take 30 seconds. Mastering the decision takes longer.</p>
+        </div>
+
+        <div class="hero-board-wrap" data-reveal>
+          <span class="board-sticker sticker-one">1 in 6</span>
+          <span class="board-sticker sticker-two">+184?</span>
+          <div class="game-board lens-active" id="hero-board">
+            <div class="board-topline">
+              <span>Round <b>8 / 10</b></span>
+              <span class="connection"><i></i> AI connected</span>
+            </div>
+            <div class="score-row">
+              <div><span>You</span><strong>620</strong></div>
+              <span class="versus">VS</span>
+              <div class="ai-score"><span>The Analyst</span><strong>590</strong></div>
+            </div>
+            <div class="table-zone">
+              <div class="die die-one" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+              <div class="pot">
+                <span>Shared pot</span>
+                <strong>184</strong>
+                <small>points at risk</small>
+              </div>
+              <div class="die die-two" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="lens-annotation annotation-risk"><span>Bust chance</span><b>1 in 6</b></div>
+              <div class="lens-annotation annotation-lead"><span>Your lead</span><b>+30</b></div>
+              <div class="lens-annotation annotation-rounds"><span>Rounds left</span><b>2</b></div>
+            </div>
+            <div class="ai-status"><span class="status-pulse"></span><span>AI decision</span><strong>Reading the table…</strong></div>
+            <div class="board-actions" aria-hidden="true">
+              <span class="fake-button bank">Bank 184</span>
+              <span class="fake-button roll">Roll again</span>
+            </div>
+            <button class="lens-toggle" type="button" aria-pressed="true" aria-controls="hero-board">
+              <svg><use href="#icon-scan"></use></svg><span>Strategy lens</span><b>ON</b>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="hero-ticker" aria-hidden="true">
+        <div>READ THE RISK <span>•</span> QUESTION THE AI <span>•</span> CRACK THE STRATEGY <span>•</span> READ THE RISK <span>•</span> QUESTION THE AI <span>•</span> CRACK THE STRATEGY</div>
+      </div>
+    </section>
+
+    <section class="decision-section section-paper" aria-labelledby="decision-title">
+      <div class="page-shell">
+        <div class="section-heading decision-heading" data-reveal>
+          <p class="eyebrow ink">Quick—what would you do?</p>
+          <h2 id="decision-title">The pot is 184.<br>One roll could change everything.</h2>
+        </div>
+        <div class="decision-console" data-reveal>
+          <div class="scenario-panel">
+            <div class="scenario-header"><span>Live scenario</span><span>Round 8 / 10</span></div>
+            <div class="scenario-score">
+              <div><small>You</small><b>620</b></div>
+              <span>+</span>
+              <div><small>AI</small><b>590</b></div>
+            </div>
+            <div class="scenario-pot"><small>Pot</small><strong>184</strong><span>points</span></div>
+            <div class="risk-strip">
+              <span>Next-roll bust chance</span>
+              <strong>1 in 6</strong>
+              <div class="risk-dots" aria-label="One of six possible risk units is a bust"><i class="danger"></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+          <div class="choice-panel" id="choice-panel">
+            <p class="choice-prompt">Your move</p>
+            <div class="choice-buttons">
+              <button type="button" class="choice-button choose-bank" data-choice="bank">Bank <b>184</b><span>Lock it in</span></button>
+              <button type="button" class="choice-button choose-roll" data-choice="roll">Roll again<svg><use href="#icon-die"></use></svg><span>Risk the pot</span></button>
+            </div>
+            <p class="choice-note">There is no trick answer. Context changes the call.</p>
+          </div>
+          <div class="decision-reveal" id="decision-reveal" hidden aria-live="polite">
+            <p class="eyebrow ink">Strategy unlocked</p>
+            <h3>You made the call. Now crack it.</h3>
+            <p class="your-call" id="your-call"></p>
+            <p>You’re leading by 30 with two rounds left. Banking protects the lead. Rolling gives you a chance to pull away—but puts all 184 points at risk.</p>
+            <div class="ai-call"><span>The AI banked</span><p>It valued protecting the lead more than chasing a bigger pot.</p></div>
+            <div class="factor-grid">
+              <div><b>1 in 6</b><span>Bust chance</span></div>
+              <div><b>+30</b><span>Score lead</span></div>
+              <div><b>2</b><span>Rounds left</span></div>
+              <div><b>184</b><span>At risk</span></div>
+            </div>
+            <div class="reveal-actions">
+              <a href="/learn/">Crack this decision <svg><use href="#icon-arrow"></use></svg></a>
+              <button type="button" id="reset-decision">Try the other move</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="manifesto section-paper" aria-label="Bank It learning philosophy">
+      <div class="page-shell manifesto-inner" data-reveal>
+        <span class="math-fragment fragment-a">1/6</span><span class="math-fragment fragment-b">+184</span><span class="math-fragment fragment-c">10R</span>
+        <h2>Math isn’t the homework here.<br><span>It’s how you win.</span></h2>
+        <p>Probability reads the risk. Strategy uses it. AI gives you someone to test it against.</p>
+      </div>
+    </section>
+
+    <section class="how-section section-dark" id="how-to-play" aria-labelledby="how-title">
+      <div class="page-shell">
+        <div class="section-heading split-heading" data-reveal>
+          <div><p class="eyebrow">Easy to start. Hard to solve.</p><h2 id="how-title">Three moves.<br>One strategy problem.</h2></div>
+          <p>The dice create the problem. You decide how to solve it.</p>
+        </div>
+        <div class="game-path" data-reveal>
+          <article class="path-step step-roll">
+            <div class="step-icon"><svg><use href="#icon-die"></use></svg></div>
+            <span class="step-number">01</span>
+            <h3>Roll</h3>
+            <p>The shared pot grows with every safe roll. Doubles can send it soaring.</p>
+            <div class="strategy-note"><svg><use href="#icon-scan"></use></svg><span>More reward means more to lose.</span></div>
+          </article>
+          <div class="path-arrow" aria-hidden="true"><span></span><svg><use href="#icon-arrow"></use></svg></div>
+          <article class="path-step step-read">
+            <div class="step-icon"><svg><use href="#icon-branch"></use></svg></div>
+            <span class="step-number">02</span>
+            <h3>Read the risk</h3>
+            <p>Watch the pot, the score, and the rounds left. Context changes the call.</p>
+            <div class="strategy-note"><svg><use href="#icon-scan"></use></svg><span>Probability becomes strategy.</span></div>
+          </article>
+          <div class="path-arrow" aria-hidden="true"><span></span><svg><use href="#icon-arrow"></use></svg></div>
+          <article class="path-step step-bank">
+            <div class="step-icon"><svg><use href="#icon-shield"></use></svg></div>
+            <span class="step-number">03</span>
+            <h3>Bank or push</h3>
+            <p>Lock in the pot—or risk a seven wiping out everyone who has not banked.</p>
+            <div class="strategy-note"><svg><use href="#icon-scan"></use></svg><span>No perfect move without context.</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="ai-section section-blue" id="ai-opponents" aria-labelledby="ai-title">
+      <div class="page-shell">
+        <div class="section-heading split-heading blue-heading" data-reveal>
+          <div><p class="eyebrow">Question the AI</p><h2 id="ai-title">Same table. Same facts.<br>Different calls.</h2></div>
+          <p>Every opponent sees the same pot, scores, and rolls. Different models can still weigh the risk differently. That does not make one automatically right.</p>
+        </div>
+        <div class="shared-state" data-reveal>
+          <span>Shared game state</span>
+          <div><small>Pot</small><b>211</b></div>
+          <div><small>Position</small><b>Trailing by 85</b></div>
+          <div><small>Rounds left</small><b>1</b></div>
+          <div><small>Bust chance</small><b>1 in 6</b></div>
+        </div>
+        <div class="model-grid">
+          <article class="model-card" data-reveal>
+            <div class="model-top"><span>Legacy generation</span><b>GPT-3.5</b></div>
+            <div class="model-decision bank-call"><small>Decision</small><strong>Bank</strong><svg><use href="#icon-shield"></use></svg></div>
+            <div class="risk-meter"><span>Risk profile</span><b>Unpredictable</b><i><em style="width:72%"></em></i></div>
+            <p>Locks in what it has, even though 211 points may not be enough to close the gap.</p>
+            <ul><li>Sees the large pot</li><li>Weights immediate loss heavily</li><li>Underreacts to the final round</li></ul>
+          </article>
+          <article class="model-card featured-model" data-reveal>
+            <span class="model-stamp">Stronger call?</span>
+            <div class="model-top"><span>Reasoning generation</span><b>GPT-5</b></div>
+            <div class="model-decision roll-call"><small>Decision</small><strong>Roll again</strong><svg><use href="#icon-die"></use></svg></div>
+            <div class="risk-meter"><span>Risk profile</span><b>Calculated</b><i><em style="width:86%"></em></i></div>
+            <p>Accepts more danger because banking now still leaves it behind with no later round.</p>
+            <ul><li>Reads the 85-point deficit</li><li>Recognizes the final round</li><li>Trades safety for a winning chance</li></ul>
+          </article>
+          <article class="model-card" data-reveal>
+            <div class="model-top"><span>Human-built policy</span><b>State Delta</b></div>
+            <div class="model-decision roll-call"><small>Decision</small><strong>Roll again</strong><svg><use href="#icon-branch"></use></svg></div>
+            <div class="risk-meter"><span>Risk profile</span><b>Adaptive</b><i><em style="width:81%"></em></i></div>
+            <p>Raises its target when trailing and refuses to bank a score that cannot take the lead.</p>
+            <ul><li>Measures the score delta</li><li>Adjusts for time pressure</li><li>Uses tested thresholds</li></ul>
+          </article>
+        </div>
+        <a class="inline-link light-link" href="/learn/">See why the models disagree <svg><use href="#icon-arrow"></use></svg></a>
+      </div>
+    </section>
+
+    <section class="crack-section section-paper" aria-labelledby="crack-title">
+      <div class="page-shell">
+        <div class="section-heading centered-heading" data-reveal>
+          <p class="eyebrow ink">Go behind the game</p>
+          <h2 id="crack-title">Three ways to crack it.</h2>
+          <p>You do not need to memorize a formula. Start with a move you want to understand.</p>
+        </div>
+        <div class="crack-grid">
+          <article class="crack-card probability-card" data-reveal>
+            <div class="card-index">01</div><span class="topic-chip">Probability</span>
+            <div class="crack-visual fraction-visual"><strong>1</strong><i></i><strong>6</strong><span>chance of a bust</span></div>
+            <h3>Read the odds</h3>
+            <p>Find out what “one in six” really means when 184 points are on the line.</p>
+            <span class="card-action">Run the same roll 36 times <svg><use href="#icon-arrow"></use></svg></span>
+          </article>
+          <article class="crack-card ai-card" data-reveal>
+            <div class="card-index">02</div><span class="topic-chip">Artificial intelligence</span>
+            <div class="crack-visual decision-visual"><span>BANK</span><span>ROLL</span><span>ROLL</span></div>
+            <h3>Question the machine</h3>
+            <p>Compare model calls and find the situations where stronger AI still makes weak moves.</p>
+            <span class="card-action">Compare three AI calls <svg><use href="#icon-arrow"></use></svg></span>
+          </article>
+          <article class="crack-card simulation-card" data-reveal>
+            <div class="card-index">03</div><span class="topic-chip">Simulation + code</span>
+            <div class="crack-visual sim-visual"><svg><use href="#icon-chart"></use></svg><strong>10,000</strong><span>games tested</span></div>
+            <h3>Test the strategy</h3>
+            <p>One lucky game proves nothing. Run thousands and see which ideas keep winning.</p>
+            <span class="card-action">Simulate 10,000 games <svg><use href="#icon-arrow"></use></svg></span>
+          </article>
+        </div>
+        <div class="center-action" data-reveal><a class="button button-blue" href="/learn/"><svg><use href="#icon-scan"></use></svg> Crack the strategy</a></div>
+      </div>
+    </section>
+
+    <section class="proof-section section-dark" aria-labelledby="proof-title">
+      <div class="page-shell proof-grid">
+        <div class="proof-copy" data-reveal>
+          <p class="eyebrow">Luck gets one game. Strategy gets 200,000.</p>
+          <h2 id="proof-title">We tested the machines.</h2>
+          <p>The strategy work behind Bank It compares AI-generated formulas and human-built policies across hundreds of thousands of simulated games.</p>
+          <blockquote>Don’t trust the smartest-sounding answer. Test what actually works.</blockquote>
+          <a class="inline-link" href="/learn/">See the experiment <svg><use href="#icon-arrow"></use></svg></a>
+        </div>
+        <figure class="result-board" data-reveal>
+          <figcaption><span>200K game showdown</span><b>Tie-adjusted wins</b></figcaption>
+          <div class="result-row winner"><div><span>01</span><b>State Delta</b></div><div class="bar"><i style="--value:53.45%"></i></div><strong>53.45%</strong></div>
+          <div class="result-row"><div><span>02</span><b>GPT-5 strategy</b></div><div class="bar"><i style="--value:31.83%"></i></div><strong>31.83%</strong></div>
+          <div class="result-row"><div><span>03</span><b>GPT-4o strategy</b></div><div class="bar"><i style="--value:12.88%"></i></div><strong>12.88%</strong></div>
+          <div class="result-row"><div><span>04</span><b>GPT-3.5 strategy</b></div><div class="bar"><i style="--value:1.84%"></i></div><strong>1.84%</strong></div>
+          <p>One reproducible 200,000-game, four-strategy simulation. Results do not describe every possible matchup.</p>
+        </figure>
+      </div>
+    </section>
+
+    <section class="fork-section section-paper" aria-labelledby="fork-title">
+      <div class="page-shell">
+        <div class="section-heading centered-heading" data-reveal><p class="eyebrow ink">Choose your path</p><h2 id="fork-title">Your next move?</h2></div>
+        <div class="fork-grid">
+          <a class="fork-card play-fork" href="/game/" data-reveal>
+            <span class="fork-label">Test your instincts</span>
+            <svg class="fork-icon"><use href="#icon-die"></use></svg>
+            <h3>Play Bank It</h3>
+            <p>Choose a live AI opponent, make the calls, and see whether your strategy holds up.</p>
+            <span class="fork-button">Challenge the AI <svg><use href="#icon-arrow"></use></svg></span>
+          </a>
+          <a class="fork-card learn-fork" href="/learn/" data-reveal>
+            <span class="fork-label">Get the edge</span>
+            <svg class="fork-icon"><use href="#icon-scan"></use></svg>
+            <h3>Crack the strategy</h3>
+            <p>Use probability, compare AI decisions, and test the ideas hiding underneath every roll.</p>
+            <span class="fork-button">Crack the strategy <svg><use href="#icon-arrow"></use></svg></span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="page-shell footer-grid">
+      <div><a class="brand footer-brand" href="#top"><span class="brand-mark" aria-hidden="true"><svg><use href="#icon-die"></use></svg></span><span>BANK IT</span></a><p>Read the risk. Question the AI.<br>Crack the strategy.</p></div>
+      <nav aria-label="Footer navigation"><a href="/game/">Play</a><a href="/learn/">Crack the strategy</a><a href="#how-to-play">How to play</a><a href="#ai-opponents">AI opponents</a></nav>
+      <p class="copyright">© <span id="year">2026</span> Bank It<br>Built for curious minds.</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
