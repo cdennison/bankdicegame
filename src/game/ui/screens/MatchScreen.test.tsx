@@ -65,6 +65,7 @@ describe('MatchScreen', () => {
 
     expect(screen.getByText('Round 1 / 10')).toBeInTheDocument();
     expect(screen.getByLabelText('Pot: 42 points')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Current pot' })).toHaveAttribute('aria-atomic', 'true');
     expect(screen.getByLabelText('Dice: 3 and 5')).toBeInTheDocument();
     expect(screen.getByText('Alexandra Never-Truncated is up')).toBeInTheDocument();
     const board = screen.getByRole('list', { name: 'Scoreboard' });
@@ -190,10 +191,11 @@ describe('MatchScreen', () => {
     },
   ])('announces meaningful $mode events in one polite live region', ({ mode, narration, event }) => {
     render(<MatchScreen controller={controller({ presentation: { mode, narration, event } })} />);
-    const live = screen.getByRole('status');
+    const live = screen.getAllByRole('status').find((status) => status.textContent === narration);
+    expect(live).toBeDefined();
     expect(live).toHaveAttribute('aria-live', 'polite');
     expect(live).toHaveTextContent(narration);
-    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getAllByRole('status')).toHaveLength(2);
   });
 
   it.each([
@@ -203,7 +205,26 @@ describe('MatchScreen', () => {
   ])('does not announce purely visual $mode narration', ({ mode, narration }) => {
     render(<MatchScreen controller={controller({ presentation: { mode, narration } })} />);
     expect(screen.getByText(narration)).toBeInTheDocument();
-    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    const statuses = screen.getAllByRole('status');
+    expect(statuses).toHaveLength(2);
+    expect(screen.getByRole('status', { name: 'Current pot' })).toHaveTextContent(/^Pot: 42 points$/);
+    expect(statuses.find((status) => status.getAttribute('aria-label') === null)).toBeEmptyDOMElement();
+  });
+
+  it('exposes only committed pot changes through the atomic pot status', () => {
+    const { rerender } = render(<MatchScreen controller={controller({
+      state: state({ round: { ...state().round, pot: 42 } }),
+      presentation: { mode: 'rolling', narration: 'Mira is rolling.' },
+    })} />);
+    expect(screen.getByRole('status', { name: 'Current pot' })).toHaveTextContent(/^Pot: 42 points$/);
+
+    rerender(<MatchScreen controller={controller({
+      state: state({ round: { ...state().round, pot: 50 } }),
+      presentation: { mode: 'idle', narration: '' },
+    })} />);
+
+    expect(screen.getByRole('status', { name: 'Current pot' })).toHaveTextContent(/^Pot: 50 points$/);
+    expect(screen.queryByText('Mira is rolling.')).not.toBeInTheDocument();
   });
 
   it('keeps restart keyboard focus modal, handles Escape, and restores the trigger', async () => {

@@ -54,6 +54,13 @@ export const selectWinners = (state: GameState): readonly RankedPlayer[] => {
   return rankings.filter(({ rank }) => rank === 1);
 };
 
+export const selectWinnerHeading = (winners: readonly RankedPlayer[]): string => {
+  if (winners.length === 0) return 'Match complete';
+  if (winners.length === 1) return `${winners[0]!.name} wins!`;
+  const names = winners.map(({ name }) => name);
+  return `${names.slice(0, -1).join(', ')} & ${names.at(-1)} tie!`;
+};
+
 export const selectCurrentPlayer = (state: GameState): PlayerDefinition | undefined =>
   state.config.players.find(({ id }) => id === state.round.currentPlayerId);
 

@@ -171,6 +171,36 @@ describe('GameApp', () => {
     expect(screen.getByRole('heading', { name: /choose your opponents/i })).toBeInTheDocument();
   });
 
+  it('moves focus and announces the selector-owned winner when a match becomes complete', () => {
+    const human = { id: 'human-1', name: 'Rae', seatIndex: 0, controller: { type: 'human' as const } };
+    controller.state = {
+      config: { rounds: 10, seedCode: 'BK1-AAKD-JXV2', players: [human] },
+      players: [{ id: human.id, score: 42, active: true }],
+      phase: 'awaiting-roll',
+      round: { roundNumber: 10, pot: 0, rollNumber: 3, dangerRolls: 0, activePlayerIds: [human.id], currentPlayerId: human.id, lastDangerRollWasDouble: false },
+      random: {}, firstStarterIndex: 0,
+    };
+    controller.rankings = [{ ...human, score: 42, active: true, rank: 1 }];
+    controller.currentPlayer = human;
+    const { rerender } = render(<GameApp />);
+
+    controller.state = {
+      ...controller.state,
+      players: [{ id: human.id, score: 42, active: false }],
+      phase: 'game-complete',
+      round: { ...controller.state.round as object, activePlayerIds: [] },
+    };
+    controller.rankings = [{ ...human, score: 42, active: false, rank: 1 }];
+    controller.winners = [controller.rankings[0]!];
+    rerender(<GameApp />);
+
+    const results = screen.getByRole('region', { name: 'Match results' });
+    expect(results).toHaveFocus();
+    expect(screen.getByRole('heading', { name: 'Rae wins!' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Match result announcement' })).toHaveTextContent('Rae wins!');
+    expect(screen.getAllByRole('status', { name: 'Match result announcement' })).toHaveLength(1);
+  });
+
   it('re-entering an old code recreates its first starter and dice through public engine APIs', async () => {
     const user = userEvent.setup();
     const originalConfig: GameConfig = {

@@ -11,7 +11,7 @@ const pythonRound = (value: number): number => {
   return floor % 2 === 0 ? floor : floor + 1;
 };
 
-const stateAwareTarget = (context: StrategyContext): number => {
+export const stateAwareTarget = (context: StrategyContext): number => {
   const scoreDelta = context.ownScore - leaderScore(context);
   if (scoreDelta === 0) return 200;
 

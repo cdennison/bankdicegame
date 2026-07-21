@@ -88,8 +88,8 @@ describe('ResultsScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Copy Game Code' }));
 
     expect(writeText).toHaveBeenCalledWith('BK1-AAKD-JXV2');
-    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
-    expect(screen.getByRole('status')).toHaveTextContent('Game code copied.');
+    expect(screen.getByRole('status', { name: 'Copy status' })).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByRole('status', { name: 'Copy status' })).toHaveTextContent('Game code copied.');
   });
 
   it('keeps the code selectable and politely reports clipboard failure', async () => {
@@ -102,7 +102,7 @@ describe('ResultsScreen', () => {
 
     await user.click(screen.getByRole('button', { name: 'Copy Game Code' }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('Copy failed. Select the code and copy it manually.');
+    expect(screen.getByRole('status', { name: 'Copy status' })).toHaveTextContent('Copy failed. Select the code and copy it manually.');
     expect(screen.getByText('BK1-AAKD-JXV2')).toBeVisible();
   });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { StrategyId } from '../domain/types';
-import { getStrategy } from './personalities';
+import { getStrategy, stateAwareTarget } from './personalities';
 import { OPPONENT_PROFILES } from './reveals';
 import type { StrategyContext } from './types';
 
@@ -22,6 +22,30 @@ const context = (
 });
 
 describe('fictional opponent strategies', () => {
+  it('matches Python ties-to-even rounding when the scaled target ends in 28.5', () => {
+    expect(stateAwareTarget(context({
+      roundNumber: 5,
+      ownScore: 1180,
+      opponentScores: [1000, 1000, 1000],
+    }))).toBe(140);
+  });
+
+  it('matches Python banked-opponent escalation literally', () => {
+    expect(stateAwareTarget(context({
+      ownScore: 1000,
+      opponentScores: [1350, 1000, 1000],
+      activeOpponentCount: 2,
+    }))).toBe(351);
+  });
+
+  it('matches Python final-round escalation literally', () => {
+    expect(stateAwareTarget(context({
+      roundNumber: 10,
+      ownScore: 1000,
+      opponentScores: [1500, 1000, 1000],
+    }))).toBe(501);
+  });
+
   it('Mira banks at the State Delta target of 340 when down 500 in round 5 at four seats', () => {
     const mira = getStrategy('mira');
     const view = context({

@@ -5,10 +5,19 @@ interface PotDisplayProps {
 
 export function PotDisplay({ pot, rollNumber }: PotDisplayProps) {
   return (
-    <div className="pot-display" aria-label={`Pot: ${pot} points`}>
-      <span className="pot-label">Table pot</span>
-      <strong className="pot-total">{pot}</strong>
-      <span className="roll-status">Roll {rollNumber + 1} next</span>
-    </div>
+    <>
+      <div className="pot-display" aria-label={`Pot: ${pot} points`}>
+        <span className="pot-label">Table pot</span>
+        <strong className="pot-total">{pot}</strong>
+        <span className="roll-status">Roll {rollNumber + 1} next</span>
+      </div>
+      <p
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label="Current pot"
+      >Pot: {pot} points</p>
+    </>
   );
 }
