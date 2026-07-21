@@ -32,6 +32,7 @@ build/
 .vscode/
 .codex/
 .superpowers/
+.worktrees/
 
 # Generated QA artifacts and logs
 qa/
