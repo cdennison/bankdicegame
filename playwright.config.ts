@@ -8,13 +8,13 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
-  retries: process.env.CI ? 2 : 1,
+  retries: process.env.CI ? 2 : 0,
   outputDir: 'test-results',
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {
     baseURL,
     screenshot: 'only-on-failure',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     contextOptions: {
       reducedMotion: 'reduce',
     },

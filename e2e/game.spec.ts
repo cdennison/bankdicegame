@@ -13,6 +13,19 @@ const assertViewportHasNoHorizontalOverflow = async (page: Page) => {
   expect(widths.body).toBe(widths.viewport);
 };
 
+const assertFinalScore = async (
+  page: Page,
+  rankings: ReturnType<Page['getByRole']>,
+  playerName: string,
+  score: number,
+) => {
+  const row = rankings.getByRole('listitem').filter({
+    has: page.getByText(playerName, { exact: true }),
+  });
+  await expect(row).toHaveCount(1);
+  await expect(row.getByText(String(score), { exact: true })).toBeVisible();
+};
+
 test('replays the complete seeded game through public controls', async ({ page }, testInfo) => {
   await page.goto('/game/');
 
@@ -48,11 +61,21 @@ test('replays the complete seeded game through public controls', async ({ page }
 
   await expect(page.getByRole('heading', { name: 'Mira wins!' })).toBeVisible({ timeout: 60_000 });
   const rankings = page.getByRole('list', { name: 'Final rankings' });
-  await expect(rankings.getByRole('listitem').filter({ hasText: 'Mira' })).toContainText('780');
-  await expect(rankings.getByRole('listitem').filter({ hasText: 'You' })).toContainText('458');
-  await expect(rankings.getByRole('listitem').filter({ hasText: 'Vega' })).toContainText('360');
-  await expect(page.getByRole('heading', { name: 'State Delta' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Fixed 200' })).toBeVisible();
+  await assertFinalScore(page, rankings, 'Mira', 780);
+  await assertFinalScore(page, rankings, 'You', 458);
+  await assertFinalScore(page, rankings, 'Vega', 360);
+
+  const reveals = page.getByRole('region', { name: 'Opponent strategies revealed' });
+  const miraReveal = reveals.getByRole('article').filter({
+    has: page.getByText('Mira', { exact: true }),
+  });
+  const vegaReveal = reveals.getByRole('article').filter({
+    has: page.getByText('Vega', { exact: true }),
+  });
+  await expect(miraReveal).toHaveCount(1);
+  await expect(vegaReveal).toHaveCount(1);
+  await expect(miraReveal.getByRole('heading', { name: 'State Delta' })).toBeVisible();
+  await expect(vegaReveal.getByRole('heading', { name: 'Fixed 200' })).toBeVisible();
   await expect(page.getByText(challengeCode, { exact: true })).toBeVisible();
 
   await assertViewportHasNoHorizontalOverflow(page);
