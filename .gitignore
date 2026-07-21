@@ -31,6 +31,7 @@ build/
 .idea/
 .vscode/
 .codex/
+.superpowers/
 
 # Generated QA artifacts and logs
 qa/
