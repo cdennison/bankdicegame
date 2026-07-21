@@ -2,11 +2,14 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createGame, transition } from '../domain/reducer';
+import type { GameConfig } from '../domain/types';
+
 const controller = vi.hoisted(() => ({
   state: null as null | Record<string, unknown>,
   presentation: { mode: 'idle', narration: '' },
   rankings: [] as Record<string, unknown>[],
-  winners: [],
+  winners: [] as Record<string, unknown>[],
   legalActions: { canRoll: false, canStay: false, canBank: false },
   currentPlayer: undefined as Record<string, unknown> | undefined,
   decisionLabels: { stay: 'Roll On', bank: 'Bank' },
@@ -14,6 +17,7 @@ const controller = vi.hoisted(() => ({
   roll: vi.fn(),
   submitDecision: vi.fn(),
   restart: vi.fn(),
+  reset: vi.fn(),
 }));
 
 vi.mock('../application/useGameController', () => ({
@@ -25,8 +29,11 @@ import { GameApp } from './GameApp';
 beforeEach(() => {
   controller.state = null;
   controller.rankings = [];
+  controller.winners = [];
   controller.currentPlayer = undefined;
   controller.start.mockReset();
+  controller.reset.mockReset();
+  controller.restart.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -103,5 +110,104 @@ describe('GameApp', () => {
     expect(screen.getByLabelText('Bank It match')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Roll' })).toBeEnabled();
     expect(screen.queryByText(/coming next/i)).not.toBeInTheDocument();
+  });
+
+  it('renders selector-owned results and starts one new-code rematch with the exact lineup', async () => {
+    const user = userEvent.setup();
+    const players = [
+      { id: 'human-1', name: 'Rae', seatIndex: 0, controller: { type: 'human' as const } },
+      { id: 'opponent-vega', name: 'Vega', seatIndex: 1, controller: { type: 'strategy' as const, strategyId: 'vega' as const } },
+      { id: 'opponent-mira', name: 'Mira', seatIndex: 2, controller: { type: 'strategy' as const, strategyId: 'mira' as const } },
+    ];
+    controller.state = {
+      config: { rounds: 10, seedCode: 'BK1-AAKD-JXV2', players },
+      players: players.map(({ id }, index) => ({ id, score: 100 - index, active: false })),
+      phase: 'game-complete',
+      round: { roundNumber: 10, pot: 0, rollNumber: 3, dangerRolls: 0, activePlayerIds: [], currentPlayerId: 'human-1', lastDangerRollWasDouble: false },
+      random: {},
+      firstStarterIndex: 0,
+    };
+    controller.rankings = [
+      { ...players[1], score: 77, active: false, rank: 1 },
+      { ...players[0], score: 999, active: false, rank: 2 },
+      { ...players[2], score: 20, active: false, rank: 3 },
+    ];
+    controller.winners = [controller.rankings[0]];
+    const getRandomValues = vi.spyOn(window.crypto, 'getRandomValues').mockImplementation((values) => {
+      if (values instanceof Uint32Array) values[0] = 0;
+      return values;
+    });
+
+    render(<GameApp />);
+    expect(screen.getByRole('heading', { name: 'Vega wins!' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Play Again' }));
+
+    expect(getRandomValues).toHaveBeenCalledOnce();
+    expect(controller.start).toHaveBeenCalledOnce();
+    expect(controller.start).toHaveBeenCalledWith({
+      rounds: 10,
+      seedCode: 'BK1-AAAA-AAAA',
+      players,
+    });
+    expect(controller.start.mock.calls[0]![0].seedCode).not.toBe('BK1-AAKD-JXV2');
+    expect(controller.restart).not.toHaveBeenCalled();
+  });
+
+  it('resets a completed match to a clean setup', async () => {
+    const user = userEvent.setup();
+    controller.state = {
+      config: { rounds: 10, seedCode: 'BK1-AAKD-JXV2', players: [] },
+      players: [], phase: 'game-complete', round: {}, random: {}, firstStarterIndex: 0,
+    };
+    controller.rankings = [];
+    controller.winners = [];
+    controller.reset.mockImplementation(() => { controller.state = null; });
+    const { rerender } = render(<GameApp />);
+
+    await user.click(screen.getByRole('button', { name: 'New Game' }));
+    rerender(<GameApp />);
+
+    expect(controller.reset).toHaveBeenCalledOnce();
+    expect(screen.getByRole('heading', { name: /choose your opponents/i })).toBeInTheDocument();
+  });
+
+  it('re-entering an old code recreates its first starter and dice through public engine APIs', async () => {
+    const user = userEvent.setup();
+    const originalConfig: GameConfig = {
+      rounds: 10,
+      seedCode: 'BK1-AAKD-JXV2',
+      players: [
+        { id: 'human-1', name: 'Rae', seatIndex: 0, controller: { type: 'human' } },
+        { id: 'opponent-vega', name: 'Vega', seatIndex: 1, controller: { type: 'strategy', strategyId: 'vega' } },
+      ],
+    };
+    const firstSequence = (gameConfig: GameConfig) => {
+      const initial = createGame(gameConfig);
+      const rolled = transition(initial, { type: 'ROLL_DICE' });
+      if (!rolled.ok) throw new Error(rolled.error.code);
+      return {
+        starter: initial.round.currentPlayerId,
+        dice: rolled.state.pendingRoll?.dice,
+      };
+    };
+    controller.state = {
+      config: originalConfig,
+      players: [], phase: 'game-complete', round: {}, random: {}, firstStarterIndex: 0,
+    };
+    controller.rankings = [];
+    controller.winners = [];
+    controller.reset.mockImplementation(() => { controller.state = null; });
+    const { rerender } = render(<GameApp />);
+
+    await user.click(screen.getByRole('button', { name: 'New Game' }));
+    rerender(<GameApp />);
+    await user.clear(screen.getByLabelText(/your name/i));
+    await user.type(screen.getByLabelText(/your name/i), 'Rae');
+    await user.click(screen.getByRole('button', { name: /select vega/i }));
+    await user.type(screen.getByLabelText(/challenge code/i), originalConfig.seedCode);
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+
+    const reenteredConfig = controller.start.mock.calls[0]![0];
+    expect(firstSequence(reenteredConfig)).toEqual(firstSequence(originalConfig));
   });
 });

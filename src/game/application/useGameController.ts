@@ -35,9 +35,11 @@ interface EngineState {
 
 type EngineAction =
   | { readonly type: 'START'; readonly config: GameConfig }
-  | { readonly type: 'COMMAND'; readonly command: Command };
+  | { readonly type: 'COMMAND'; readonly command: Command }
+  | { readonly type: 'RESET' };
 
 const engineReducer = (current: EngineState, action: EngineAction): EngineState => {
+  if (action.type === 'RESET') return { game: null, events: [] };
   if (action.type === 'START') return { game: createGame(action.config), events: [] };
   if (!current.game) return current;
   const result = transition(current.game, action.command);
@@ -83,6 +85,7 @@ export interface GameController {
   roll(): void;
   submitDecision(playerId: PlayerId, decision: Decision): void;
   restart(): void;
+  reset(): void;
 }
 
 export interface GameControllerOptions {
@@ -125,6 +128,12 @@ export const useGameController = (
     dispatchPresentation({ type: 'RESET' });
     if (engine.game) dispatchEngine({ type: 'START', config: engine.game.config });
   }, [engine.game]);
+
+  const reset = useCallback(() => {
+    activeSequence.current?.abort();
+    dispatchPresentation({ type: 'RESET' });
+    dispatchEngine({ type: 'RESET' });
+  }, []);
 
   useEffect(() => {
     const game = engine.game;
@@ -173,5 +182,6 @@ export const useGameController = (
     roll,
     submitDecision,
     restart,
+    reset,
   };
 };

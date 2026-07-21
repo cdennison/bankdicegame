@@ -35,6 +35,23 @@ describe('useGameController', () => {
     unmount();
   });
 
+  it('aborts pending automatic work and clears the match on reset', async () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useGameController({
+      timing: { thinking: 100, dice: 100, strategyReveal: 100, roundTransition: 100 },
+    }));
+    act(() => result.current.start(playersFixture(2, { humans: [] })));
+    expect(result.current.presentation.mode).toBe('thinking');
+
+    await act(() => vi.advanceTimersByTimeAsync(50));
+    act(() => result.current.reset());
+    await act(() => vi.advanceTimersByTimeAsync(500));
+
+    expect(result.current.state).toBeNull();
+    expect(result.current.presentation.mode).toBe('idle');
+    unmount();
+  });
+
   it('aborts pending automatic work on unmount without unhandled rejections', async () => {
     vi.useFakeTimers();
     const unhandled = vi.fn();

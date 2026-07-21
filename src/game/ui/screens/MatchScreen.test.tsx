@@ -53,6 +53,7 @@ const controller = (overrides: Partial<GameController> = {}): GameController => 
   roll: vi.fn(),
   submitDecision: vi.fn(),
   restart: vi.fn(),
+  reset: vi.fn(),
   ...overrides,
 });
 

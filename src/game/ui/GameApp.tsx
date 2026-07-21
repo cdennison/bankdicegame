@@ -1,14 +1,21 @@
 import { useGameController } from '../application/useGameController';
 import { createConfig } from '../domain/config';
-import { generateGameCode } from '../domain/random';
+import { formatGameCode, generateGameCode, parseGameCode } from '../domain/random';
 import type { PlayerDefinition } from '../domain/types';
 import { OPPONENT_PROFILES } from '../strategies/reveals';
 import { Icon } from './components/Icon';
+import { GameErrorBoundary } from './components/GameErrorBoundary';
 import { MatchScreen } from './screens/MatchScreen';
+import { ResultsScreen } from './screens/ResultsScreen';
 import { SetupScreen, type SetupSubmission } from './screens/SetupScreen';
 
 export function GameApp() {
   const controller = useGameController();
+
+  const generateCode = () => generateGameCode({
+    getRandomValues: (values) =>
+      window.crypto.getRandomValues(values as Uint32Array<ArrayBuffer>),
+  });
 
   const start = (submission: SetupSubmission) => {
     const players: PlayerDefinition[] = [
@@ -24,6 +31,39 @@ export function GameApp() {
     if (result.ok) controller.start(result.config);
   };
 
+  const playAgain = () => {
+    const current = controller.state?.config;
+    if (!current) return;
+    let seedCode = generateCode();
+    if (seedCode === current.seedCode) {
+      const parsed = parseGameCode(seedCode);
+      if (parsed.ok) seedCode = formatGameCode((parsed.seed + 1) >>> 0);
+    }
+    const result = createConfig({ ...current, seedCode, players: current.players });
+    if (result.ok) controller.start(result.config);
+  };
+
+  const content = controller.state
+    ? controller.state.phase === 'game-complete'
+      ? (
+          <ResultsScreen
+            config={controller.state.config}
+            rankings={controller.rankings}
+            winners={controller.winners}
+            profiles={OPPONENT_PROFILES}
+            onPlayAgain={playAgain}
+            onNewGame={controller.reset}
+          />
+        )
+      : <MatchScreen controller={controller} profiles={OPPONENT_PROFILES} />
+    : (
+        <SetupScreen
+          opponents={OPPONENT_PROFILES}
+          generateCode={generateCode}
+          onStart={start}
+        />
+      );
+
   return (
     <main className="game-stage">
       <div className="app-shell">
@@ -32,18 +72,7 @@ export function GameApp() {
           <div className="game-brand"><span className="mini-die" aria-hidden="true">5</span><span>BANK IT</span></div>
           <span className="demo-badge">Local strategy game</span>
         </header>
-        {controller.state ? (
-          <MatchScreen controller={controller} profiles={OPPONENT_PROFILES} />
-        ) : (
-          <SetupScreen
-            opponents={OPPONENT_PROFILES}
-            generateCode={() => generateGameCode({
-              getRandomValues: (values) =>
-                window.crypto.getRandomValues(values as Uint32Array<ArrayBuffer>),
-            })}
-            onStart={start}
-          />
-        )}
+        <GameErrorBoundary onRestart={controller.reset}>{content}</GameErrorBoundary>
       </div>
     </main>
   );
