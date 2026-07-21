@@ -29,9 +29,9 @@ describe('SetupScreen', () => {
     expect(screen.getAllByText(/human player/i)).toHaveLength(1);
   });
 
-  it('keeps unique opponents in selection order and blocks a fourth selection', async () => {
+  it('caps the v1 roster at all three real profiles and submits them in click order', async () => {
     const user = userEvent.setup();
-    renderSetup();
+    const { onStart } = renderSetup();
 
     await user.click(screen.getByRole('button', { name: /select vega/i }));
     await user.click(screen.getByRole('button', { name: /select mira/i }));
@@ -40,10 +40,16 @@ describe('SetupScreen', () => {
     expect(screen.getByRole('button', { name: /select vega/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /select mira/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /select knox/i })).toBeDisabled();
-    expect(screen.queryByRole('button', { name: /select .*fourth/i })).not.toBeInTheDocument();
 
     const lineup = screen.getByRole('list', { name: /your lineup/i });
     expect(lineup.textContent).toMatch(/You.*Vega.*Mira.*Knox/);
+
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+    expect(onStart).toHaveBeenCalledWith({
+      humanName: 'You',
+      opponentIds: ['vega', 'mira', 'knox'],
+      seedCode: generatedCode,
+    });
   });
 
   it('submits the human name, ordered opponent ids, and a valid supplied code', async () => {
@@ -77,6 +83,7 @@ describe('SetupScreen', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/BK1-XXXX-XXXX/i);
     expect(codeField).toHaveAttribute('aria-invalid', 'true');
     expect(codeField).toHaveAccessibleDescription(/BK1-XXXX-XXXX/i);
+    expect(codeField).toHaveFocus();
     expect(onStart).not.toHaveBeenCalled();
   });
 
@@ -97,14 +104,26 @@ describe('SetupScreen', () => {
     });
   });
 
-  it('removes an opponent and allows that strategy to be selected again', async () => {
+  it('removes, re-enables, and reselects an opponent at the end of the lineup', async () => {
     const user = userEvent.setup();
-    renderSetup();
+    const { onStart } = renderSetup();
 
     await user.click(screen.getByRole('button', { name: /select mira/i }));
+    await user.click(screen.getByRole('button', { name: /select vega/i }));
     await user.click(screen.getByRole('button', { name: /remove mira/i }));
 
     expect(screen.getByRole('button', { name: /select mira/i })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /^start$/i })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /select mira/i }));
+
+    expect(screen.getByRole('button', { name: /select mira/i })).toBeDisabled();
+    expect(screen.getByRole('list', { name: /your lineup/i }).textContent)
+      .toMatch(/You.*Vega.*Mira/);
+
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+    expect(onStart).toHaveBeenCalledWith({
+      humanName: 'You',
+      opponentIds: ['vega', 'mira'],
+      seedCode: generatedCode,
+    });
   });
 });

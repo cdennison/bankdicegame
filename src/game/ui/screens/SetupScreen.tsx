@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 
 import { parseGameCode } from '../../domain/random';
 import type { StrategyId } from '../../domain/types';
@@ -27,7 +27,12 @@ export function SetupScreen({ opponents, generateCode, onStart }: SetupScreenPro
   const [opponentIds, setOpponentIds] = useState<StrategyId[]>([]);
   const [seedCode, setSeedCode] = useState('');
   const [seedError, setSeedError] = useState<string>();
+  const gameCodeInput = useRef<HTMLInputElement>(null);
   const canStart = humanName.trim().length > 0 && opponentIds.length > 0;
+
+  useLayoutEffect(() => {
+    if (seedError) gameCodeInput.current?.focus();
+  }, [seedError]);
 
   const selectOpponent = (id: StrategyId) => {
     setOpponentIds((current) => {
@@ -87,6 +92,7 @@ export function SetupScreen({ opponents, generateCode, onStart }: SetupScreenPro
           <p className="field-help" id="name-help">One human pilot. Choose one to three AI challengers.</p>
 
           <GameCodeField
+            ref={gameCodeInput}
             value={seedCode}
             error={seedError}
             onChange={(value) => {

@@ -55,3 +55,29 @@ Implemented the approved React setup experience with controlled human name, orde
 
 - The full baseline stylesheet was moved as requested, so unused future match/results selectors remain in the CSS until those screens are implemented; none of that UI is rendered by this task.
 - Static avatar tokens are intentionally temporary and remain replaceable through the existing `avatar.src`/`avatar.alt` profile schema.
+
+## Important-review follow-up
+
+### RED evidence
+
+- Added `toHaveFocus()` to the invalid-code interaction and strengthened the setup/application boundary tests before changing production code.
+- Command: `npm test -- --run src/game/ui --reporter=verbose`
+- Result: `1 failed, 7 passed`. The invalid-code test failed exactly because the Start button retained focus after the associated inline error rendered; expected the challenge-code input to have focus.
+- The new boundary tests already passed against existing behavior, replacing weak assertions with observable coverage rather than forcing production changes: all three real profiles submit exactly once in click order, removal followed by actual reselection appends to the lineup, and blank-code startup calls Web Crypto once then sends the exact normalized generic config to `controller.start`.
+
+### Fix details
+
+- `GameCodeField` now forwards its input ref.
+- `SetupScreen` owns that ref and uses a layout effect to focus the challenge-code input when an inline seed error is committed to the DOM.
+- Removed the fictitious fourth-opponent assertion. Maximum coverage now selects Mira, Knox, and Vega only, proves all three roster controls are locked, and verifies an exact three-ID submission in click order.
+- Reselection coverage now selects two opponents, removes one, verifies availability, reselects it, and proves its new lineup/submission position.
+- `GameApp.test.tsx` now isolates the controller boundary and proves one `crypto.getRandomValues` call produces `BK1-AAAA-AAAA`, ten rounds, a human-first seat, and strategy seats in selection order.
+
+### GREEN evidence
+
+- Command: `npm test -- --run src/game/ui --reporter=verbose && npm run typecheck && npm run build`
+- Result: `2 passed` UI test files, `8 passed` UI tests; typecheck exited 0; Vite production build exited 0 and emitted hashed game assets.
+
+### Follow-up concerns
+
+- None. The review fix does not broaden `StrategyId`, add test-only production hooks, or alter the approved visual design.
