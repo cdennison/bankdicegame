@@ -48,6 +48,11 @@ export interface RoundState {
   readonly dangerRolls: number;
   readonly activePlayerIds: readonly PlayerId[];
   readonly currentPlayerId: PlayerId;
+  readonly lastDangerRollWasDouble: boolean;
+}
+
+export interface PendingRoll {
+  readonly dice: readonly [number, number];
 }
 
 export interface DecisionSnapshot {
@@ -63,6 +68,9 @@ export interface GameState {
   readonly players: readonly PlayerState[];
   readonly phase: GamePhase;
   readonly round: RoundState;
+  readonly random: import('./random').RandomState;
+  readonly firstStarterIndex: number;
+  readonly pendingRoll?: PendingRoll;
   readonly decisionSnapshot?: DecisionSnapshot;
 }
 
@@ -76,7 +84,8 @@ export type Command =
     }
   | { readonly type: 'RESOLVE_STRATEGY_DECISIONS' }
   | { readonly type: 'COMMIT_DECISIONS' }
-  | { readonly type: 'ADVANCE_ROUND' };
+  | { readonly type: 'ADVANCE_ROUND' }
+  | { readonly type: 'RESTART' };
 
 export type DomainEvent =
   | {
