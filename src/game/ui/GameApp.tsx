@@ -4,6 +4,7 @@ import { generateGameCode } from '../domain/random';
 import type { PlayerDefinition } from '../domain/types';
 import { OPPONENT_PROFILES } from '../strategies/reveals';
 import { Icon } from './components/Icon';
+import { MatchScreen } from './screens/MatchScreen';
 import { SetupScreen, type SetupSubmission } from './screens/SetupScreen';
 
 export function GameApp() {
@@ -32,10 +33,7 @@ export function GameApp() {
           <span className="demo-badge">Local strategy game</span>
         </header>
         {controller.state ? (
-          <section className="screen safe-placeholder" aria-labelledby="match-placeholder-title">
-            <p className="kicker">Table ready</p>
-            <h1 id="match-placeholder-title">Match screen coming next</h1>
-          </section>
+          <MatchScreen controller={controller} profiles={OPPONENT_PROFILES} />
         ) : (
           <SetupScreen
             opponents={OPPONENT_PROFILES}
