@@ -24,6 +24,7 @@ import {
   runAutomaticTurn,
   type AutomaticTurnController,
   type PresentationMode,
+  type PresentationStep,
 } from './aiTurnRunner';
 import { TIMING, type GameTiming } from './timing';
 
@@ -46,18 +47,16 @@ const engineReducer = (current: EngineState, action: EngineAction): EngineState 
 export interface PresentationState {
   readonly mode: PresentationMode;
   readonly narration: string;
-  readonly events: readonly DomainEvent[];
+  readonly event?: DomainEvent;
 }
 
 type PresentationAction =
-  | { readonly type: 'MODE'; readonly mode: PresentationMode }
-  | { readonly type: 'EVENTS'; readonly events: readonly DomainEvent[] }
+  | { readonly type: 'STEP'; readonly step: PresentationStep }
   | { readonly type: 'RESET' };
 
 const initialPresentation: PresentationState = {
   mode: 'idle',
   narration: '',
-  events: [],
 };
 
 const presentationReducer = (
@@ -65,11 +64,10 @@ const presentationReducer = (
   action: PresentationAction,
 ): PresentationState => {
   if (action.type === 'RESET') return initialPresentation;
-  if (action.type === 'MODE') return { ...current, mode: action.mode };
   return {
-    ...current,
-    events: action.events,
-    narration: action.events.at(-1)?.type ?? '',
+    mode: action.step.mode,
+    narration: action.step.narration ?? current.narration,
+    event: action.step.event,
   };
 };
 
@@ -88,7 +86,7 @@ export interface GameController {
 }
 
 export interface GameControllerOptions {
-  readonly timing?: GameTiming;
+  readonly timing?: Partial<GameTiming>;
 }
 
 const isAbortError = (error: unknown): boolean =>
@@ -97,7 +95,7 @@ const isAbortError = (error: unknown): boolean =>
 export const useGameController = (
   options: GameControllerOptions = {},
 ): GameController => {
-  const timing = options.timing ?? TIMING;
+  const timing: GameTiming = { ...TIMING, ...options.timing };
   const [engine, dispatchEngine] = useReducer(engineReducer, { game: null, events: [] });
   const [presentation, dispatchPresentation] = useReducer(
     presentationReducer,
@@ -129,21 +127,17 @@ export const useGameController = (
   }, [engine.game]);
 
   useEffect(() => {
-    dispatchPresentation({ type: 'EVENTS', events: engine.events });
-  }, [engine.events]);
-
-  useEffect(() => {
     const game = engine.game;
     if (!game) return;
 
     activeSequence.current?.abort();
     const abort = new AbortController();
     activeSequence.current = abort;
-    dispatchPresentation({ type: 'MODE', mode: 'idle' });
     const controller: AutomaticTurnController = {
       getState: () => game,
+      getEvents: () => engine.events,
       dispatch: (command) => dispatchEngine({ type: 'COMMAND', command }),
-      present: (mode) => dispatchPresentation({ type: 'MODE', mode }),
+      present: (step) => dispatchPresentation({ type: 'STEP', step }),
     };
     void runAutomaticTurn(controller, timing, abort.signal).catch((error: unknown) => {
       if (!isAbortError(error)) queueMicrotask(() => { throw error; });
@@ -155,6 +149,9 @@ export const useGameController = (
     };
   }, [
     engine.game,
+    engine.events,
+    timing.banking,
+    timing.bust,
     timing.dice,
     timing.roundTransition,
     timing.strategyReveal,
