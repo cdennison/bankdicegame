@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameController } from '../../application/useGameController';
 import type { GameState, PlayerDefinition } from '../../domain/types';
 import { MatchScreen } from './MatchScreen';
+import '../styles/game.css';
 
 const players: PlayerDefinition[] = [
   { id: 'human-1', name: 'Alexandra Never-Truncated', seatIndex: 0, controller: { type: 'human' } },
@@ -66,9 +67,20 @@ describe('MatchScreen', () => {
     expect(screen.getByLabelText('Dice: 3 and 5')).toBeInTheDocument();
     expect(screen.getByText('Alexandra Never-Truncated is up')).toBeInTheDocument();
     const board = screen.getByRole('list', { name: 'Scoreboard' });
-    expect(within(board).getAllByRole('listitem')).toHaveLength(8);
-    expect(within(board).getByText('Alexandra Never-Truncated')).toBeVisible();
-    expect(within(board).getByText('175')).toBeVisible();
+    const rows = within(board).getAllByRole('listitem');
+    expect(rows).toHaveLength(8);
+    players.forEach((player, index) => {
+      const row = rows[index]!;
+      const fullName = within(row).getByText(player.name);
+      const fullScore = within(row).getByText(String((7 - index) * 25));
+      expect(fullName).toBeVisible();
+      expect(fullName.textContent).toBe(player.name);
+      expect(fullScore).toBeVisible();
+      expect(fullScore.textContent).toBe(String((7 - index) * 25));
+      expect(getComputedStyle(fullName).textOverflow).not.toBe('ellipsis');
+      expect(getComputedStyle(fullName).whiteSpace).not.toBe('nowrap');
+      expect(getComputedStyle(fullScore).textOverflow).not.toBe('ellipsis');
+    });
   });
 
   it('offers only Roll before the third safe roll and invokes the controlled action', async () => {
@@ -126,30 +138,121 @@ describe('MatchScreen', () => {
     expect(screen.getByText('Banked')).toBeInTheDocument();
     expect(screen.getByText('You banked. Watch the round finish.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Bank' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Roll On' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Stay In' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /roll/i })).not.toBeInTheDocument();
   });
 
-  it('announces meaningful controller narration in one polite live region', () => {
-    render(<MatchScreen controller={controller({
-      presentation: { mode: 'banking', narration: 'Mira banked 42 points.' },
+  it('restores human controls when the next round reactivates the banked seat', () => {
+    const inactivePlayers = state().players.map((player) =>
+      player.id === 'human-1' ? { ...player, active: false } : player,
+    );
+    const { rerender } = render(<MatchScreen controller={controller({
+      state: state({ players: inactivePlayers }),
+      rankings: controller().rankings.map((player) =>
+        player.id === 'human-1' ? { ...player, active: false } : player,
+      ),
+      legalActions: { canRoll: false, canStay: false, canBank: false },
     })} />);
+    expect(screen.getByText('You banked. Watch the round finish.')).toBeInTheDocument();
+
+    rerender(<MatchScreen controller={controller({
+      state: state({ round: { ...state().round, roundNumber: 2, rollNumber: 0, pot: 0 } }),
+      legalActions: { canRoll: true, canStay: false, canBank: false },
+    })} />);
+
+    expect(screen.getByText('Round 2 / 10')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Roll' })).toBeEnabled();
+    expect(screen.queryByText('You banked. Watch the round finish.')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      mode: 'rolling' as const,
+      narration: 'Mira rolled 3 and 5.',
+      event: { type: 'DiceRolled' as const, playerId: 'ai-0', dice: [3, 5] as const },
+    },
+    {
+      mode: 'banking' as const,
+      narration: 'Mira banked 42 points.',
+      event: { type: 'PlayerBanked' as const, playerId: 'ai-0', amount: 42 },
+    },
+    {
+      mode: 'bust' as const,
+      narration: 'Round 1 busted. The pot is lost.',
+      event: { type: 'RoundBusted' as const, roundNumber: 1, pot: 42 },
+    },
+    {
+      mode: 'round-transition' as const,
+      narration: 'Round 1 complete.',
+      event: { type: 'RoundCompleted' as const, roundNumber: 1 },
+    },
+  ])('announces meaningful $mode events in one polite live region', ({ mode, narration, event }) => {
+    render(<MatchScreen controller={controller({ presentation: { mode, narration, event } })} />);
     const live = screen.getByRole('status');
     expect(live).toHaveAttribute('aria-live', 'polite');
-    expect(live).toHaveTextContent('Mira banked 42 points.');
+    expect(live).toHaveTextContent(narration);
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
-  it('confirms restart accessibly and allows cancellation', async () => {
+  it.each([
+    { mode: 'thinking' as const, narration: 'Mira is thinking.' },
+    { mode: 'revealing' as const, narration: 'Opponents are choosing.' },
+    { mode: 'rolling' as const, narration: 'Mira is rolling.' },
+  ])('does not announce purely visual $mode narration', ({ mode, narration }) => {
+    render(<MatchScreen controller={controller({ presentation: { mode, narration } })} />);
+    expect(screen.getByText(narration)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('keeps restart keyboard focus modal, handles Escape, and restores the trigger', async () => {
+    const user = userEvent.setup();
+    render(<MatchScreen controller={controller()} />);
+    const trigger = screen.getByRole('button', { name: 'Restart match' });
+
+    await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: 'Restart match?' });
+    const cancel = within(dialog).getByRole('button', { name: 'Cancel' });
+    expect(dialog).toHaveAccessibleDescription('Scores and round progress will return to the beginning.');
+    expect(cancel).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    const reopenedDialog = screen.getByRole('dialog', { name: 'Restart match?' });
+    const reopenedCancel = within(reopenedDialog).getByRole('button', { name: 'Cancel' });
+    const confirm = within(reopenedDialog).getByRole('button', { name: 'Restart' });
+    expect(reopenedCancel).toHaveFocus();
+
+    await user.tab();
+    expect(confirm).toHaveFocus();
+    await user.tab();
+    expect(reopenedCancel).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(confirm).toHaveFocus();
+
+    trigger.focus();
+    expect(reopenedCancel).toHaveFocus();
+    confirm.focus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it('restores trigger focus after Cancel and invokes restart after Confirm', async () => {
     const user = userEvent.setup();
     const value = controller();
     render(<MatchScreen controller={value} />);
+    const trigger = screen.getByRole('button', { name: 'Restart match' });
 
-    await user.click(screen.getByRole('button', { name: 'Restart match' }));
-    expect(screen.getByRole('dialog', { name: 'Restart match?' })).toBeInTheDocument();
+    await user.click(trigger);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
 
-    await user.click(screen.getByRole('button', { name: 'Restart match' }));
+    await user.click(trigger);
     await user.click(screen.getByRole('button', { name: 'Restart' }));
     expect(value.restart).toHaveBeenCalledOnce();
+    expect(trigger).toHaveFocus();
   });
 });

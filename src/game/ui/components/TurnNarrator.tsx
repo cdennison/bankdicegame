@@ -6,18 +6,20 @@ interface TurnNarratorProps {
   readonly presentation: PresentationState;
 }
 
-const announcedModes = new Set([
-  'rolling',
-  'banking',
-  'bust',
-  'round-transition',
-  'game-complete',
+const announcedEvents = new Set([
+  'DiceRolled',
+  'PlayerBanked',
+  'RoundBusted',
+  'RoundCompleted',
+  'GameCompleted',
 ]);
 
 export function TurnNarrator({ currentPlayer, presentation }: TurnNarratorProps) {
   const visualMessage = presentation.narration ||
     (currentPlayer ? `${currentPlayer.name} is up` : 'The table is settling');
-  const liveMessage = announcedModes.has(presentation.mode) ? presentation.narration : '';
+  const liveMessage = presentation.event && announcedEvents.has(presentation.event.type)
+    ? presentation.narration
+    : '';
 
   return (
     <>
