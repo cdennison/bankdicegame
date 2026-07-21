@@ -52,9 +52,17 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -.035em; }
 .field-label { display: block; margin: 10px 0 4px; color: var(--amber); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
 .name-entry { display: grid; grid-template-columns: 1fr 48px; gap: 8px; }
 .name-entry input { width: 100%; min-height: 48px; padding: 0 4px; border: 0; border-bottom: 2px solid var(--blue); border-radius: 0; color: white; background: transparent; font-size: 18px; }
+.human-token { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid var(--line); border-radius: 12px; color: var(--yellow); background: var(--slate-850); }
 .add-human { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid var(--line); border-radius: 12px; color: var(--muted); background: var(--slate-850); }
 .add-human:disabled { cursor:not-allowed; }
 .field-help { margin: 9px 0 24px; color: var(--muted); font-size: 12px; }
+.game-code-field { margin-bottom: 25px; }
+.game-code-field .field-label { display: flex; justify-content: space-between; }
+.game-code-field .field-label span { color: var(--muted); }
+.game-code-field input { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--paper); background: var(--slate-950); font-family: var(--mono); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.game-code-field input[aria-invalid="true"] { border-color: var(--danger); }
+.game-code-field .field-help { margin-bottom: 0; }
+.field-error { margin: 7px 0 0; color: var(--danger); font-size: 12px; }
 .lineup-heading, .picker-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
 .lineup-heading { margin-bottom: 10px; }
 .lineup-heading h2, .picker-heading h2 { margin: 0; font-size: 21px; }
@@ -62,24 +70,28 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -.035em; }
 .lineup-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .lineup-player { display: grid; min-height: 50px; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 8px 8px 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--slate-950); box-shadow: inset 4px 0 0 var(--player-color); }
 .player-avatar { display: grid; width: 31px; height: 31px; place-items: center; border-radius: 8px; color: var(--night); background: var(--player-color); font-family: var(--mono); font-size: 10px; font-weight: 700; }
+.player-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .lineup-player div { min-width: 0; }
 .lineup-player strong { display: block; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .lineup-player span { display: block; color: var(--muted); font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
 .remove-player { display: grid; width: 38px; height: 38px; place-items: center; border: 0; border-radius: 8px; color: var(--amber); background: transparent; }
 .remove-player:disabled { opacity: .25; cursor: not-allowed; }
 .remove-player svg { width: 17px; }
+.seat-marker { padding-right: 10px; color: var(--muted); font-family: var(--mono); font-size: 8px; }
 .opponent-picker { padding: 19px; border: 1px solid var(--line); border-radius: 18px; background: var(--slate-950); }
 .picker-heading { display: block; margin-bottom: 15px; }
 .opponent-options { display: grid; gap: 9px; }
 .opponent-card { position: relative; display: grid; min-height: 82px; grid-template-columns: 1fr auto; gap: 7px 14px; padding: 13px; border: 1px solid var(--line); border-radius: 12px; color: var(--paper); background: var(--slate-850); text-align: left; transition: border-color .18s ease, transform .18s ease; }
 .opponent-card:hover:not(:disabled) { border-color: var(--opponent-color); transform: translateY(-1px); }
 .opponent-card:disabled { opacity: .45; cursor: not-allowed; }
+.opponent-card.selected { border-color: var(--opponent-color); opacity: .72; }
 .opponent-card strong { font-size: 15px; }
 .opponent-card .model { align-self: start; color: var(--opponent-color); font-family: var(--mono); font-size: 8px; text-transform: uppercase; }
 .opponent-card p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 12px; }
 .opponent-card .plus { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid currentColor; border-radius: 8px; color: var(--opponent-color); }
 .local-note { display: flex; align-items: center; gap: 8px; margin: 15px 0 0; color: var(--muted); font-family: var(--mono); font-size: 8px; }
 .local-note span { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(62,214,164,.12); }
+.safe-placeholder { padding: 48px 42px; }
 
 .play-screen { padding-bottom: 108px; }
 .play-layout { display: grid; }
