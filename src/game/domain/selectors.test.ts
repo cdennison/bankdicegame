@@ -84,6 +84,16 @@ describe('game selectors', () => {
     expect(selectDecisionLabels(state, 'human')).toEqual({ stay: 'Stay In', bank: 'Bank' });
   });
 
+  it('returns no decision labels after every player has banked', () => {
+    const initial = createGame(fourSeatFixture());
+    const state = withState(initial, {
+      phase: 'round-complete',
+      round: Object.freeze({ ...initial.round, activePlayerIds: Object.freeze([]) }),
+    });
+
+    expect(selectDecisionLabels(state, 'human')).toBeUndefined();
+  });
+
   it('removes direct actions as soon as the released human banks', () => {
     const initial = stateAtDecision(fourSeatFixture(), { pot: 40, scores: [0, 0, 0, 0] });
     const snapshot = freezeDecisionSnapshot(initial);

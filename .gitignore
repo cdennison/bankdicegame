@@ -38,3 +38,5 @@ build/
 # Generated QA artifacts and logs
 qa/
 *.log
+test-results/
+playwright-report/

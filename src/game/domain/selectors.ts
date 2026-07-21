@@ -89,7 +89,8 @@ export const selectLegalActions = (
 export const selectDecisionLabels = (
   state: GameState,
   playerId: PlayerId | undefined = defaultHumanId(state),
-): DecisionLabels => {
+): DecisionLabels | undefined => {
+  if (state.round.activePlayerIds.length === 0) return undefined;
   const nextId = nextActivePlayer(
     state.config.players.map(({ id }) => id),
     state.round.activePlayerIds,

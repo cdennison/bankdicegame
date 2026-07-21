@@ -6,6 +6,30 @@ formula, a live banking-target calculator, sample games, and benchmark results.
 Open `index.html` for the Bank It landing page. It routes players to `/game`
 and curious visitors to the educational material under `/learn`.
 
+## Run the web app locally
+
+Install the JavaScript dependencies and start the Vite development server:
+
+```bash
+npm install
+npm run dev
+```
+
+Open the printed local URL at `/game/` to play. The landing page is at `/`, and
+the strategy explainer is at `/learn/`.
+
+Use these commands for local verification:
+
+```bash
+npm test
+npm run test:e2e
+npm run build
+```
+
+`BK1` challenge codes reproduce the first roller and every dice pair in a match.
+An exact replay also requires the same opponent lineup in the same order and the
+same human decisions. The code alone does not record those choices.
+
 This is a dependency-free Monte Carlo simulator for the shared-pot dice game
 **Bank** / **Bank It**. It compares 17 banking strategies in balanced matchups
 and prints an easy-to-read terminal ranking.
