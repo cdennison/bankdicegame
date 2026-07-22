@@ -19,6 +19,7 @@ env/
 node_modules/
 dist/
 build/
+*.tsbuildinfo
 
 # Local configuration and secrets
 .env
@@ -38,3 +39,5 @@ build/
 qa/
 *.log
 .vercel
+test-results/
+playwright-report/
