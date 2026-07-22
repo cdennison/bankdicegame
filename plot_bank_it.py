@@ -376,7 +376,9 @@ def render_threshold_sweep(
         zorder=4,
         label="Highest observed in tested range",
     )
-    highest_label = _highest_observed_label(targets[best_index])
+    best_target = targets[best_index]
+    tested_maximum = targets[-1]
+    highest_label = _highest_observed_label(best_target, tested_maximum)
     axis.annotate(
         highest_label.replace(": ", ":\n", 1),
         xy=(targets[best_index], wins[best_index]),
@@ -396,10 +398,13 @@ def render_threshold_sweep(
         loc="left",
         pad=31,
     )
+    range_subtitle = f"Targets {targets[0]}–{tested_maximum} only"
+    if best_target == tested_maximum:
+        range_subtitle += " · Larger targets were not evaluated"
     axis.text(
         0,
         1.015,
-        f"Targets {targets[0]}–{targets[-1]} only · Larger targets were not evaluated",
+        range_subtitle,
         transform=axis.transAxes,
         color=MUTED,
         fontsize=11,
@@ -419,8 +424,9 @@ def _best_annotation_offset(index: int, point_count: int) -> tuple[int, int]:
     return (-180, 24) if index >= point_count / 2 else (18, 24)
 
 
-def _highest_observed_label(target: int) -> str:
-    return f"Highest observed in tested range: {target} (range maximum)"
+def _highest_observed_label(target: int, tested_maximum: int) -> str:
+    label = f"Highest observed in tested range: {target}"
+    return f"{label} (range maximum)" if target == tested_maximum else label
 
 
 def _generate_plot_data(
@@ -537,6 +543,10 @@ def main() -> None:
     )
     threshold_appearances = sorted({row.appearances for row in threshold.final_rates})
     best = max(threshold.final_rates, key=lambda row: row.win_rate)
+    best_target = _fixed_target(best.strategy)
+    tested_maximum = max(
+        _fixed_target(row.strategy) for row in threshold.final_rates
+    )
     print(f"Seed: {args.seed}")
     print(
         "Convergence: "
@@ -546,8 +556,9 @@ def main() -> None:
         f"Threshold sweep: {threshold.games:,} games; "
         f"final appearances {threshold_appearances}"
     )
-    print(_highest_observed_label(_fixed_target(best.strategy)))
-    print("Larger targets were not evaluated.")
+    print(_highest_observed_label(best_target, tested_maximum))
+    if best_target == tested_maximum:
+        print("Larger targets were not evaluated.")
     print(f"Wrote {len(paths)} artifacts to {args.output_dir}")
 
 

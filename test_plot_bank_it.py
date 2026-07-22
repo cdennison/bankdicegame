@@ -341,7 +341,7 @@ class PlotArtifactTests(unittest.TestCase):
             svg = svg_path.read_text(encoding="utf-8")
 
         self.assertEqual(
-            plot_bank_it._highest_observed_label(200),
+            plot_bank_it._highest_observed_label(200, 200),
             "Highest observed in tested range: 200 (range maximum)",
         )
         self.assertIn("Highest observed in tested range:", svg)
@@ -371,6 +371,54 @@ class PlotArtifactTests(unittest.TestCase):
         self.assertIn("Highest observed in tested range: 200 (range maximum)", cli)
         self.assertIn("Larger targets were not evaluated", cli)
         self.assertNotIn("Observed best fixed target", cli)
+
+    def test_interior_winner_does_not_claim_range_maximum(self):
+        interior = SimulationSummary(
+            games=3,
+            series={},
+            final_rates=(
+                FinalRate("Pot 100", 3, 0.2, 0.1),
+                FinalRate("Pot 200", 3, 0.5, 0.1),
+                FinalRate("Pot 300", 3, 0.3, 0.1),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            svg_path = output_dir / "threshold.svg"
+            render_threshold_sweep(interior, svg_path, output_dir / "threshold.png")
+            svg = svg_path.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            plot_bank_it._highest_observed_label(200, 300),
+            "Highest observed in tested range: 200",
+        )
+        self.assertIn("Highest observed in tested range:", svg)
+        self.assertIn("<!-- 200 -->", svg)
+        self.assertNotIn("range maximum", svg)
+        self.assertNotIn("Larger targets were not evaluated", svg)
+
+        arguments = SimpleNamespace(
+            output_dir=Path("unused"),
+            seed=20260722,
+            convergence_epochs=50,
+            threshold_epochs=10,
+            checkpoint_every=1000,
+        )
+        output = io.StringIO()
+        with (
+            patch("plot_bank_it._parse_args", return_value=arguments),
+            patch(
+                "plot_bank_it._generate_plot_data",
+                return_value=((Path("one"),), self.summary, interior),
+            ),
+            redirect_stdout(output),
+        ):
+            plot_bank_it.main()
+
+        cli = output.getvalue()
+        self.assertIn("Highest observed in tested range: 200", cli)
+        self.assertNotIn("range maximum", cli)
+        self.assertNotIn("Larger targets were not evaluated", cli)
 
 
 if __name__ == "__main__":
