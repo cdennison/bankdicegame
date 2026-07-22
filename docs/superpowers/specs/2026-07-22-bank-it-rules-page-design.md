@@ -1,6 +1,6 @@
 # Bank It Rules Page Design
 
-**Status:** Approved for implementation planning  
+**Status:** Approved for implementation planning
 **Date:** 2026-07-22
 
 ## Summary
