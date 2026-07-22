@@ -73,6 +73,15 @@ The three families have distinct jobs and are already loaded by the landing page
 - **Motion:** 180ms color and transform response; no entry animation.
 - **Layout:** fixed above the header; header shell reserves right-side space so navigation remains operable at 375, 768, and 1280px.
 
+### Rules article
+
+- **Structure:** compact ink header, short hero, source credit, numbered contents navigation, seven-section article, and source footer.
+- **Layout:** two-column reading grid with a sticky 260px contents rail on desktop; contents returns to normal document flow below 900px. Article copy is capped at a comfortable reading measure.
+- **Variants:** standard prose section; coral risk callout for rolling 7; blue logic callout for doubles; mint action callout for calling `BANK`.
+- **States:** section anchors use a sticky-header offset; navigation and source links use underlines or bordered button treatments on hover and the global yellow keyboard focus ring.
+- **Accessibility:** one `h1`, sequential `h2` headings, semantic lists and landmarks, visible skip link, 44px navigation targets, and no hidden or collapsed rules.
+- **Surface:** warm paper content, deepest-ink header and footer, two-pixel ink borders, and small hard shadows drawn only from existing color tokens.
+
 ## 6. Motion & Interaction
 
 | Type | Duration | Usage |
@@ -96,7 +105,8 @@ The strategy is mixed and deliberately tactile: borders define dark surfaces, to
 - Touch targets are at least 44px where the component is a primary or fixed action.
 - Primary content must not scroll horizontally at 375px.
 - Reduced-motion preferences are honored.
+- Long-form rules remain readable without horizontal scrolling, and contents links remain usable when the sticky rail collapses on tablet and mobile.
 
 ### Accepted debt
 
-No new accessibility or design debt is accepted for the GitHub ribbon. Existing raw values in the pre-contract landing stylesheet are documented as inherited implementation debt and are not expanded by this change.
+No new accessibility or design debt is accepted for the GitHub ribbon or rules article. Existing raw values in the pre-contract landing stylesheet are documented as inherited implementation debt and are not expanded by this change.

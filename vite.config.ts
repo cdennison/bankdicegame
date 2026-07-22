@@ -10,6 +10,7 @@ export default defineConfig({
         landing: resolve(import.meta.dirname, 'index.html'),
         game: resolve(import.meta.dirname, 'game/index.html'),
         learn: resolve(import.meta.dirname, 'learn/index.html'),
+        rules: resolve(import.meta.dirname, 'rules/index.html'),
       },
     },
   },
