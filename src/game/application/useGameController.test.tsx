@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { playersFixture } from '../domain/fixtures';
 import { useGameController } from './useGameController';
+import { ZERO_TIMING } from './timing';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -94,6 +95,21 @@ describe('useGameController', () => {
     expect(result.current.state?.phase).toBe('awaiting-roll');
     expect(result.current.state?.round.roundNumber).toBe(2);
     expect(result.current.state?.players.every(({ active }) => active)).toBe(true);
+    unmount();
+  });
+
+  it('progresses automatic zero-timing turns without skipping the manual round pause', async () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useGameController({ timing: ZERO_TIMING }));
+    act(() => result.current.start(playersFixture(2, { humans: [] })));
+
+    for (let attempts = 0; attempts < 100 && result.current.state?.phase !== 'round-complete'; attempts += 1) {
+      await act(() => vi.runAllTimersAsync());
+    }
+
+    expect(result.current.state?.phase).toBe('round-complete');
+    expect(result.current.state?.round.roundNumber).toBe(1);
+    expect(result.current.legalActions.canAdvanceRound).toBe(true);
     unmount();
   });
 });

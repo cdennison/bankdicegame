@@ -8,14 +8,22 @@ import { DicePair } from '../components/DicePair';
 import { PotDisplay } from '../components/PotDisplay';
 import { RestartDialog } from '../components/RestartDialog';
 import { Scoreboard } from '../components/Scoreboard';
+import { SpeedModeToggle } from '../components/SpeedModeToggle';
 import { TurnNarrator } from '../components/TurnNarrator';
 
 interface MatchScreenProps {
   readonly controller: GameController;
   readonly profiles?: Readonly<Record<string, OpponentProfile>>;
+  readonly speedMode?: boolean;
+  readonly onSpeedModeChange?: (enabled: boolean) => void;
 }
 
-export function MatchScreen({ controller, profiles = OPPONENT_PROFILES }: MatchScreenProps) {
+export function MatchScreen({
+  controller,
+  profiles = OPPONENT_PROFILES,
+  speedMode = false,
+  onSpeedModeChange = () => undefined,
+}: MatchScreenProps) {
   const [restartOpen, setRestartOpen] = useState(false);
   const game = controller.state;
   if (!game) return null;
@@ -25,7 +33,7 @@ export function MatchScreen({ controller, profiles = OPPONENT_PROFILES }: MatchS
   const dice = game.pendingRoll?.dice ?? game.round.lastDice;
 
   return (
-    <section className="screen play-screen" aria-label="Bank It match">
+    <section className={`screen play-screen${speedMode ? ' speed-mode' : ''}`} aria-label="Bank It match">
       <div className="play-layout">
         <div className="game-board">
           <div className="round-meta">
@@ -33,9 +41,12 @@ export function MatchScreen({ controller, profiles = OPPONENT_PROFILES }: MatchS
               <span>Match progress</span>
               <strong>Round {game.round.roundNumber} / {game.config.rounds}</strong>
             </div>
-            <button className="text-button round-reset" type="button" onClick={() => setRestartOpen(true)}>
-              Restart match
-            </button>
+            <div className="match-preferences">
+              <SpeedModeToggle enabled={speedMode} onChange={onSpeedModeChange} />
+              <button className="text-button round-reset" type="button" onClick={() => setRestartOpen(true)}>
+                Restart match
+              </button>
+            </div>
           </div>
           <div className="pot-zone">
             <PotDisplay pot={game.round.pot} rollNumber={game.round.rollNumber} />

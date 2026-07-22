@@ -1,3 +1,6 @@
+import { useState } from 'react';
+
+import { ZERO_TIMING } from '../application/timing';
 import { useGameController } from '../application/useGameController';
 import { createConfig } from '../domain/config';
 import { formatGameCode, generateGameCode, parseGameCode } from '../domain/random';
@@ -10,7 +13,13 @@ import { ResultsScreen } from './screens/ResultsScreen';
 import { SetupScreen, type SetupSubmission } from './screens/SetupScreen';
 
 export function GameApp() {
-  const controller = useGameController();
+  const [speedMode, setSpeedMode] = useState(false);
+  const controller = useGameController({ timing: speedMode ? ZERO_TIMING : undefined });
+
+  const newGame = () => {
+    setSpeedMode(false);
+    controller.reset();
+  };
 
   const generateCode = () => generateGameCode({
     getRandomValues: (values) =>
@@ -52,10 +61,17 @@ export function GameApp() {
             winners={controller.winners}
             profiles={OPPONENT_PROFILES}
             onPlayAgain={playAgain}
-            onNewGame={controller.reset}
+            onNewGame={newGame}
           />
         )
-      : <MatchScreen controller={controller} profiles={OPPONENT_PROFILES} />
+      : (
+          <MatchScreen
+            controller={controller}
+            profiles={OPPONENT_PROFILES}
+            speedMode={speedMode}
+            onSpeedModeChange={setSpeedMode}
+          />
+        )
     : (
         <SetupScreen
           opponents={OPPONENT_PROFILES}
@@ -72,7 +88,7 @@ export function GameApp() {
           <div className="game-brand"><span className="mini-die" aria-hidden="true">5</span><span>BANK IT</span></div>
           <span className="demo-badge">Local strategy game</span>
         </header>
-        <GameErrorBoundary onRestart={controller.reset}>{content}</GameErrorBoundary>
+        <GameErrorBoundary onRestart={newGame}>{content}</GameErrorBoundary>
       </div>
     </main>
   );

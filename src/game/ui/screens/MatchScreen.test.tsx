@@ -61,6 +61,23 @@ const controller = (overrides: Partial<GameController> = {}): GameController => 
 afterEach(cleanup);
 
 describe('MatchScreen', () => {
+  it('scopes Speed Mode to the match and exposes its controlled toggle', async () => {
+    const user = userEvent.setup();
+    const onSpeedModeChange = vi.fn();
+    const { rerender } = render(
+      <MatchScreen controller={controller()} speedMode={false} onSpeedModeChange={onSpeedModeChange} />,
+    );
+
+    const match = screen.getByRole('region', { name: 'Bank It match' });
+    expect(match).not.toHaveClass('speed-mode');
+    await user.click(screen.getByRole('button', { name: 'Speed Mode Off' }));
+    expect(onSpeedModeChange).toHaveBeenCalledWith(true);
+
+    rerender(<MatchScreen controller={controller()} speedMode onSpeedModeChange={onSpeedModeChange} />);
+    expect(match).toHaveClass('speed-mode');
+    expect(screen.getByRole('button', { name: 'Speed Mode On' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('renders the round, pot, dice, current roller, and all eight ranked scores', () => {
     render(<MatchScreen controller={controller()} />);
 

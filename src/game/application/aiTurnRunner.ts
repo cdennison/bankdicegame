@@ -171,6 +171,10 @@ export const runAutomaticTurn = async (
         narration: `Round ${state.round.roundNumber} complete.`,
       });
     }
+    if (state.round.roundNumber === state.config.rounds) {
+      assertActive(signal);
+      controller.dispatch({ type: 'ADVANCE_ROUND' });
+    }
     return;
   }
 

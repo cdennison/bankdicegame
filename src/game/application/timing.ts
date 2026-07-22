@@ -22,7 +22,7 @@ const MOTION_TIMING: GameTiming = Object.freeze({
   roundTransition: 900,
 });
 
-const ZERO_TIMING: GameTiming = Object.freeze({
+export const ZERO_TIMING: GameTiming = Object.freeze({
   thinking: 0,
   dice: 0,
   strategyReveal: 0,

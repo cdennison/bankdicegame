@@ -8,7 +8,7 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
   outputDir: 'test-results',
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
   use: {

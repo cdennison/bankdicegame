@@ -78,7 +78,7 @@ export const selectLegalActions = (
       canRoll: false,
       canStay: false,
       canBank: false,
-      canAdvanceRound: true,
+      canAdvanceRound: state.round.roundNumber < state.config.rounds,
     };
   }
   if (!playerId) return noActions();

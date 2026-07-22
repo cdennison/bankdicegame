@@ -152,4 +152,14 @@ describe('game selectors', () => {
       canAdvanceRound: true,
     });
   });
+
+  it('does not expose a next-round action after the configured final round', () => {
+    const initial = createGame(fourSeatFixture());
+    const state = withState(initial, {
+      phase: 'round-complete',
+      round: Object.freeze({ ...initial.round, roundNumber: initial.config.rounds }),
+    });
+
+    expect(selectLegalActions(state, 'human').canAdvanceRound).toBe(false);
+  });
 });

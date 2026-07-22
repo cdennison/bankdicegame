@@ -21,11 +21,35 @@ const controller = vi.hoisted(() => ({
   reset: vi.fn(),
 }));
 
+const useGameControllerMock = vi.hoisted(() => vi.fn((_options: unknown) => controller));
+
 vi.mock('../application/useGameController', () => ({
-  useGameController: () => controller,
+  useGameController: (options: unknown) => {
+    useGameControllerMock(options);
+    return controller;
+  },
 }));
 
 import { GameApp } from './GameApp';
+
+const human = { id: 'human-1', name: 'Rae', seatIndex: 0, controller: { type: 'human' as const } };
+const matchState = () => ({
+  config: { rounds: 10, seedCode: 'BK1-AAKD-JXV2', players: [human] },
+  players: [{ id: human.id, score: 42, active: true }],
+  phase: 'awaiting-roll',
+  round: {
+    roundNumber: 1, pot: 0, rollNumber: 0, dangerRolls: 0,
+    activePlayerIds: [human.id], currentPlayerId: human.id, lastDangerRollWasDouble: false,
+  },
+  random: {},
+  firstStarterIndex: 0,
+});
+const completedState = () => ({
+  ...matchState(),
+  phase: 'game-complete',
+  players: [{ id: human.id, score: 42, active: false }],
+  round: { ...matchState().round, roundNumber: 10, activePlayerIds: [] },
+});
 
 beforeEach(() => {
   controller.state = null;
@@ -36,6 +60,7 @@ beforeEach(() => {
   controller.reset.mockReset();
   controller.restart.mockReset();
   controller.advanceRound.mockReset();
+  useGameControllerMock.mockClear();
 });
 afterEach(() => {
   cleanup();
@@ -43,6 +68,63 @@ afterEach(() => {
 });
 
 describe('GameApp', () => {
+  it('uses normal timing by default and zero timing after Speed Mode is enabled', async () => {
+    const user = userEvent.setup();
+    controller.state = matchState();
+    const { rerender } = render(<GameApp />);
+
+    expect(useGameControllerMock).toHaveBeenLastCalledWith({ timing: undefined });
+    await user.click(screen.getByRole('button', { name: 'Speed Mode Off' }));
+    rerender(<GameApp />);
+
+    expect(useGameControllerMock).toHaveBeenLastCalledWith({
+      timing: {
+        thinking: 0, dice: 0, strategyReveal: 0, banking: 0, bust: 0, roundTransition: 0,
+      },
+    });
+  });
+
+  it('keeps Speed Mode enabled through Play Again', async () => {
+    const user = userEvent.setup();
+    controller.state = matchState();
+    const { rerender } = render(<GameApp />);
+    await user.click(screen.getByRole('button', { name: 'Speed Mode Off' }));
+    controller.state = completedState();
+    rerender(<GameApp />);
+    await user.click(screen.getByRole('button', { name: 'Play Again' }));
+
+    expect(useGameControllerMock).toHaveBeenLastCalledWith({ timing: expect.objectContaining({ dice: 0 }) });
+  });
+
+  it('turns Speed Mode off before resetting for New Game', async () => {
+    const user = userEvent.setup();
+    controller.state = matchState();
+    const { rerender } = render(<GameApp />);
+    await user.click(screen.getByRole('button', { name: 'Speed Mode Off' }));
+    controller.state = completedState();
+    rerender(<GameApp />);
+    await user.click(screen.getByRole('button', { name: 'New Game' }));
+
+    expect(controller.reset).toHaveBeenCalledOnce();
+    expect(useGameControllerMock).toHaveBeenLastCalledWith({ timing: undefined });
+  });
+
+  it('turns Speed Mode off when recovering from a render error', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    controller.state = matchState();
+    const { rerender } = render(<GameApp />);
+    await user.click(screen.getByRole('button', { name: 'Speed Mode Off' }));
+
+    controller.state = { ...matchState(), config: { ...matchState().config, players: null } };
+    rerender(<GameApp />);
+    controller.reset.mockImplementation(() => { controller.state = null; });
+    await user.click(screen.getByRole('button', { name: 'Restart' }));
+
+    expect(controller.reset).toHaveBeenCalledOnce();
+    expect(useGameControllerMock).toHaveBeenLastCalledWith({ timing: undefined });
+  });
+
   it('renders the setup heading', () => {
     render(<GameApp />);
     expect(screen.getByRole('heading', { name: /choose your opponents/i })).toBeInTheDocument();

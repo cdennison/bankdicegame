@@ -197,6 +197,28 @@ describe('automatic turn runner', () => {
     expect(setup.getState()).toBe(initial);
   });
 
+  it('completes the game after presenting the final round without exposing another manual gate', async () => {
+    vi.useFakeTimers();
+    const busted = completedBust();
+    const finalRound = Object.freeze({
+      ...busted.state,
+      round: Object.freeze({ ...busted.state.round, roundNumber: busted.state.config.rounds }),
+    });
+    const finalEvents = busted.events.map((event) =>
+      event.type === 'RoundBusted' || event.type === 'RoundCompleted'
+        ? Object.freeze({ ...event, roundNumber: busted.state.config.rounds })
+        : event,
+    );
+    const setup = createController(finalRound, finalEvents);
+    const running = runAutomaticTurn(setup.controller, timing, new AbortController().signal);
+
+    await vi.runAllTimersAsync();
+    await running;
+
+    expect(setup.trace).toEqual(['bust', 'round-transition', 'ADVANCE_ROUND']);
+    expect(setup.getState().phase).toBe('game-complete');
+  });
+
   it.each([
     ['banking', committedBanks],
     ['bust', completedBust],
