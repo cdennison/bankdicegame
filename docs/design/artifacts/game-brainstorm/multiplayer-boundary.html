@@ -1,0 +1,41 @@
+<h2>One engine for 1–7 future local humans</h2>
+<p class="subtitle">V1 exposes one human seat, but the domain model supports 2–8 seats from day one.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Generic player model — no “You” special case</div>
+  <div class="mockup-body" style="padding:20px">
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center">
+      <div style="border:2px solid #45d7aa;border-radius:14px;padding:18px;background:#143b3a">
+        <div class="label">Player</div>
+        <p><strong>id</strong> · stable seat identity</p>
+        <p><strong>name</strong> · display name</p>
+        <p><strong>score</strong> · domain-owned total</p>
+        <p><strong>controller</strong> · human or strategy</p>
+        <p style="margin-bottom:0"><strong>seatIndex</strong> · turn order</p>
+      </div>
+      <div style="font-size:30px">→</div>
+      <div style="display:grid;gap:12px">
+        <div style="border:2px solid #f5b53f;border-radius:12px;padding:15px;background:#3b301c"><div class="label">HumanController</div><strong>Await a local decision</strong><p style="font-size:13px;margin:6px 0 0">V1: one seat · Future: pass-and-play queue</p></div>
+        <div style="border:2px solid #6778ff;border-radius:12px;padding:15px;background:#1e3261"><div class="label">StrategyController</div><strong>Evaluate a policy</strong><p style="font-size:13px;margin:6px 0 0">Same StrategyContext for every AI seat</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px">
+  <div class="label">After each eligible roll</div>
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;align-items:stretch;margin-top:10px">
+    <div style="border:1px solid #526470;border-radius:10px;padding:12px"><strong>1. Freeze snapshot</strong><p style="font-size:12px;margin:6px 0 0">Pot, scores and active seats are fixed for this choice.</p></div>
+    <div style="border:1px solid #f5b53f;border-radius:10px;padding:12px"><strong>2. Queue humans</strong><p style="font-size:12px;margin:6px 0 0">Future pass-and-play gathers each private Bank/Stay choice.</p></div>
+    <div style="border:1px solid #6778ff;border-radius:10px;padding:12px"><strong>3. Ask agents</strong><p style="font-size:12px;margin:6px 0 0">Every AI evaluates the same frozen snapshot.</p></div>
+    <div style="border:1px solid #45d7aa;border-radius:10px;padding:12px"><strong>4. Apply together</strong><p style="font-size:12px;margin:6px 0 0">All banking choices resolve simultaneously.</p></div>
+    <div style="border:1px solid #526470;border-radius:10px;padding:12px"><strong>5. Continue</strong><p style="font-size:12px;margin:6px 0 0">Rotate to the next active seat or end the round.</p></div>
+  </div>
+</div>
+
+<div class="split" style="margin-top:22px">
+  <div class="mockup"><div class="mockup-header">V1 configuration</div><div class="mockup-body" style="padding:18px"><strong>2–4 seats</strong><p>Exactly one local human; remaining seats use deterministic fictional agents.</p></div></div>
+  <div class="mockup"><div class="mockup-header">Future configuration</div><div class="mockup-body" style="padding:18px"><strong>2–8 seats</strong><p>One or more local humans; every remaining seat may use an AI strategy.</p></div></div>
+</div>
+
+<p class="subtitle" style="margin-top:22px">The v1 UI can stay compact while the engine, scoreboard and turn rotation are already safe for eight seats.</p>

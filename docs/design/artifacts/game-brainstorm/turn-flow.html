@@ -1,0 +1,49 @@
+<h2>One roll, one decision cycle</h2>
+<p class="subtitle">The engine preserves the Python timing: after every eligible roll, all active players get a bank decision before the next roller acts.</p>
+
+<div class="mockup">
+  <div class="mockup-header">Round state flow</div>
+  <div class="mockup-body" style="padding:20px">
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch">
+      <div style="border:2px solid #f5b53f;border-radius:12px;padding:13px;background:#3b301c"><div class="label">Phase 1</div><strong>Await roll</strong><p style="font-size:12px;margin:7px 0 0">Human taps Roll, or controller advances an AI roller.</p></div>
+      <div style="display:grid;place-items:center;font-size:24px">→</div>
+      <div style="border:2px solid #6778ff;border-radius:12px;padding:13px;background:#1e3261"><div class="label">Phase 2</div><strong>Roll resolved</strong><p style="font-size:12px;margin:7px 0 0">Injected dice create pot and rule events.</p></div>
+      <div style="display:grid;place-items:center;font-size:24px">→</div>
+      <div style="border:2px solid #f06b56;border-radius:12px;padding:13px;background:#3b2525"><div class="label">Phase 3</div><strong>Your decision</strong><p style="font-size:12px;margin:7px 0 0">After safe roll 3: stay active or bank.</p></div>
+      <div style="display:grid;place-items:center;font-size:24px">→</div>
+      <div style="border:2px solid #45d7aa;border-radius:12px;padding:13px;background:#143b3a"><div class="label">Phase 4</div><strong>AI decisions</strong><p style="font-size:12px;margin:7px 0 0">Strategies decide from the same state snapshot.</p></div>
+    </div>
+    <div style="text-align:right;padding:8px 9% 2px;font-size:28px">↘</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div style="border:1px solid #526470;border-radius:10px;padding:13px"><strong>Players remain</strong><p style="font-size:13px;margin:6px 0 0">Rotate to the next active seat and return to Await roll.</p></div>
+      <div style="border:1px solid #f06b56;border-radius:10px;padding:13px"><strong>Danger 7</strong><p style="font-size:13px;margin:6px 0 0">Unbanked points vanish; emit RoundBusted.</p></div>
+      <div style="border:1px solid #45d7aa;border-radius:10px;padding:13px"><strong>Everyone banked</strong><p style="font-size:13px;margin:6px 0 0">Close the round and advance.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="split" style="margin-top:22px">
+  <div class="mockup">
+    <div class="mockup-header">What the human sees</div>
+    <div class="mockup-body" style="padding:18px">
+      <p><span class="label">When human rolls next</span><br><strong style="font-size:22px">ROLL ON</strong> or <strong style="font-size:22px">BANK</strong></p>
+      <p><span class="label">When an AI rolls next</span><br><strong style="font-size:22px">STAY IN</strong> or <strong style="font-size:22px">BANK</strong></p>
+      <p style="margin-bottom:0;color:#9fb0b8">Before safe roll 3, no bank choice appears.</p>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">What the controller automates</div>
+    <div class="mockup-body" style="padding:18px">
+      <p>AI thinking pause → decision reveal → next AI roll</p>
+      <p>If the human banks, AI play continues automatically so the round and match still resolve visibly.</p>
+      <p style="margin-bottom:0;color:#9fb0b8">Restart cancels the current animation sequence before resetting state.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:22px">
+  <div class="label">Pure commands</div>
+  <p><code>START_GAME</code> · <code>ROLL_DICE</code> · <code>HUMAN_STAYS</code> · <code>HUMAN_BANKS</code> · <code>RESOLVE_AI_BANKING</code> · <code>ADVANCE_ROUND</code> · <code>RESTART</code></p>
+</div>
+
+<p class="subtitle">The three safe rolls use the same cycle but suppress banking until roll 3 has resolved.</p>
