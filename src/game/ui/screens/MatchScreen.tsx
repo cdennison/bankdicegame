@@ -22,10 +22,7 @@ export function MatchScreen({ controller, profiles = OPPONENT_PROFILES }: MatchS
 
   const human = game.config.players.find(({ controller: owner }) => owner.type === 'human');
   const humanState = game.players.find(({ id }) => id === human?.id);
-  const eventDice = controller.presentation.event?.type === 'DiceRolled'
-    ? controller.presentation.event.dice
-    : undefined;
-  const dice = game.pendingRoll?.dice ?? eventDice;
+  const dice = game.pendingRoll?.dice ?? game.round.lastDice;
 
   return (
     <section className="screen play-screen" aria-label="Bank It match">

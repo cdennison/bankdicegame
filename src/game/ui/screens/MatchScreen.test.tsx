@@ -85,6 +85,21 @@ describe('MatchScreen', () => {
     });
   });
 
+  it.each(['idle', 'thinking'] as const)(
+    'keeps committed dice visible after presentation becomes %s',
+    (mode) => {
+      render(<MatchScreen controller={controller({
+        state: state({
+          pendingRoll: undefined,
+          round: { ...state().round, lastDice: [3, 5] },
+        }),
+        presentation: { mode, narration: mode === 'thinking' ? 'Opponent is thinking.' : '' },
+      })} />);
+
+      expect(screen.getByLabelText('Dice: 3 and 5')).toBeInTheDocument();
+    },
+  );
+
   it('offers only Roll before the third safe roll and invokes the controlled action', async () => {
     const user = userEvent.setup();
     const value = controller();

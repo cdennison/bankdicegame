@@ -148,6 +148,7 @@ export const transition = (current: GameState, command: Command): TransitionResu
       pot: outcome.pot,
       rollNumber,
       dangerRolls: current.round.dangerRolls + outcome.dangerRollsAdded,
+      lastDice: current.pendingRoll.dice,
       lastDangerRollWasDouble: rollNumber > 3 && outcome.isDouble,
     });
     if (outcome.busted) {

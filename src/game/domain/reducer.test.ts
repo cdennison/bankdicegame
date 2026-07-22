@@ -96,6 +96,21 @@ describe('complete reducer lifecycle', () => {
     reject(rolled.state, { type: 'ROLL_DICE' });
   });
 
+  it('retains the exact staged dice after a successful roll is committed', () => {
+    const initial = game(playersFixture(2, { humans: [0, 1] }));
+    const stagedDice = [3, 5] as const;
+    const committed = transition(
+      { ...initial, phase: 'resolving-roll', pendingRoll: { dice: stagedDice } },
+      { type: 'COMMIT_ROLL' },
+    );
+
+    expect(committed.ok).toBe(true);
+    if (!committed.ok) return;
+    expect(committed.state.pendingRoll).toBeUndefined();
+    expect(committed.state.round.lastDice).toBe(stagedDice);
+    expect(committed.state.round.lastDice).toEqual([3, 5]);
+  });
+
   it('returns safe rolls one and two to awaiting-roll, then opens one frozen decision', () => {
     let state = game();
     state = rollAndCommit(state);
@@ -256,6 +271,26 @@ describe('complete reducer lifecycle', () => {
         { type: 'RoundCompleted', roundNumber: 1 },
       ],
     });
+    if (!result.ok) return;
+    expect(result.state.pendingRoll).toBeUndefined();
+    expect(result.state.round.lastDice).toEqual([1, 6]);
+  });
+
+  it('clears committed dice when advancing to a fresh round', () => {
+    const initial = game(playersFixture(2, { humans: [0, 1] }));
+    const committed = dispatch(
+      { ...initial, phase: 'resolving-roll', pendingRoll: { dice: [3, 5] as const } },
+      { type: 'COMMIT_ROLL' },
+    );
+    const advanced = transition(
+      { ...committed, phase: 'round-complete' },
+      { type: 'ADVANCE_ROUND' },
+    );
+
+    expect(advanced.ok).toBe(true);
+    if (!advanced.ok) return;
+    expect(advanced.state.round.roundNumber).toBe(2);
+    expect(advanced.state.round.lastDice).toBeUndefined();
   });
 
   it('reactivates every banked player and rotates from the original starter', () => {

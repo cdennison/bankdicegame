@@ -46,6 +46,7 @@ export interface RoundState {
   readonly pot: number;
   readonly rollNumber: number;
   readonly dangerRolls: number;
+  readonly lastDice?: readonly [number, number];
   readonly activePlayerIds: readonly PlayerId[];
   readonly currentPlayerId: PlayerId;
   readonly lastDangerRollWasDouble: boolean;
