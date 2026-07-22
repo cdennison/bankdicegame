@@ -37,3 +37,4 @@ build/
 # Generated QA artifacts and logs
 qa/
 *.log
+.vercel

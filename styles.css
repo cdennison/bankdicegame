@@ -77,6 +77,32 @@ svg {
 
 .skip-link:focus { transform: translateY(0); }
 
+.github-ribbon {
+  position: fixed;
+  z-index: 110;
+  top: 30px;
+  right: -52px;
+  display: flex;
+  width: 200px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-block: 1px solid var(--paper-050);
+  color: var(--text-on-dark);
+  background: var(--ink-950);
+  box-shadow: 0 4px 0 var(--logic-blue-dark);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .035em;
+  text-decoration: none;
+  transform: rotate(45deg);
+  transition: color .18s ease, transform .18s ease;
+}
+
+.github-ribbon:hover { color: var(--score-yellow); }
+.github-ribbon:active { transform: rotate(45deg) translateY(2px); }
+
 :focus-visible {
   outline: 3px solid var(--score-yellow);
   outline-offset: 4px;
@@ -118,6 +144,7 @@ svg {
   min-height: 78px;
   align-items: center;
   justify-content: space-between;
+  padding-right: 100px;
 }
 
 .brand {
@@ -677,6 +704,7 @@ h1, h2, h3 {
 
 @media (max-width: 820px) {
   .page-shell, .nav-shell { width: min(100% - 32px, var(--shell)); }
+  .nav-shell { padding-right: 92px; }
   .menu-toggle { display: grid; z-index: 3; width: 46px; height: 46px; place-items: center; border: 1px solid var(--line-dark); border-radius: 12px; color: white; background: var(--ink-850); }
   .menu-toggle svg { width: 23px; height: 23px; }
   .menu-close { display: none; }
@@ -700,7 +728,8 @@ h1, h2, h3 {
 
 @media (max-width: 560px) {
   body { font-size: 16px; }
-  .nav-shell { min-height: 68px; }
+  .github-ribbon { top: 24px; right: -47px; width: 176px; font-size: 9px; }
+  .nav-shell { min-height: 68px; padding-right: 82px; }
   .brand-mark { width: 34px; height: 34px; }
   .hero { padding-top: 104px; }
   .hero h1 { font-size: clamp(48px,15vw,70px); }
