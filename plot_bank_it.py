@@ -374,10 +374,11 @@ def render_threshold_sweep(
         edgecolor=NIGHT,
         linewidth=1.5,
         zorder=4,
-        label="Highest observed target",
+        label="Highest observed in tested range",
     )
+    highest_label = _highest_observed_label(targets[best_index])
     axis.annotate(
-        f"Best fixed target: {targets[best_index]}",
+        highest_label.replace(": ", ":\n", 1),
         xy=(targets[best_index], wins[best_index]),
         xytext=_best_annotation_offset(best_index, len(rates)),
         textcoords="offset points",
@@ -388,7 +389,7 @@ def render_threshold_sweep(
         bbox={"boxstyle": "round,pad=0.45", "facecolor": SLATE, "edgecolor": MINT},
     )
     axis.set_title(
-        "Where should a fixed-threshold player bank?",
+        "Fixed-target results across the tested range",
         color=PAPER,
         fontsize=22,
         fontweight="bold",
@@ -398,7 +399,7 @@ def render_threshold_sweep(
     axis.text(
         0,
         1.015,
-        "Observed results in a constrained tournament—not a universal optimum",
+        f"Targets {targets[0]}–{targets[-1]} only · Larger targets were not evaluated",
         transform=axis.transAxes,
         color=MUTED,
         fontsize=11,
@@ -416,6 +417,10 @@ def render_threshold_sweep(
 def _best_annotation_offset(index: int, point_count: int) -> tuple[int, int]:
     """Place a best-point callout toward the plot interior."""
     return (-180, 24) if index >= point_count / 2 else (18, 24)
+
+
+def _highest_observed_label(target: int) -> str:
+    return f"Highest observed in tested range: {target} (range maximum)"
 
 
 def _generate_plot_data(
@@ -492,7 +497,7 @@ def _positive_integer(value: str) -> int:
     return parsed
 
 
-def _parse_args() -> argparse.Namespace:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate deterministic Bank It strategy plots."
     )
@@ -513,7 +518,7 @@ def _parse_args() -> argparse.Namespace:
         type=_positive_integer,
         default=DEFAULT_CHECKPOINT_EVERY,
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def main() -> None:
@@ -541,7 +546,8 @@ def main() -> None:
         f"Threshold sweep: {threshold.games:,} games; "
         f"final appearances {threshold_appearances}"
     )
-    print(f"Observed best fixed target: {_fixed_target(best.strategy)}")
+    print(_highest_observed_label(_fixed_target(best.strategy)))
+    print("Larger targets were not evaluated.")
     print(f"Wrote {len(paths)} artifacts to {args.output_dir}")
 
 

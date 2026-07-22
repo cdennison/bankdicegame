@@ -1,11 +1,14 @@
 import csv
+import io
 import inspect
 import math
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import plot_bank_it
@@ -103,6 +106,31 @@ class PlotSimulationTests(unittest.TestCase):
             )
         )
 
+    def test_fixed_targets_are_seated_against_each_other(self):
+        targets = {150, 200, 250, 300}
+        field = tuple(
+            strategy
+            for strategy in fixed_threshold_field()
+            if int(strategy.name.removeprefix("Pot ")) in targets
+        )
+        seated_matchups = []
+
+        def capture_matchup(seated_field, rng, rounds):
+            seated_matchups.append({strategy.name for strategy in seated_field})
+            return [0, 0, 0, 0]
+
+        with patch("plot_bank_it.play_game", side_effect=capture_matchup):
+            simulate_balanced_convergence(
+                field,
+                players=4,
+                rounds=1,
+                epochs=1,
+                seed=19,
+                checkpoint_every=1,
+            )
+
+        self.assertIn({"Pot 150", "Pot 200", "Pot 250", "Pot 300"}, seated_matchups)
+
     def test_ties_split_wins_and_fractional_shares_drive_uncertainty(self):
         field = (
             Strategy("A", "", at_pot(100)),
@@ -176,6 +204,37 @@ class PlotArtifactTests(unittest.TestCase):
             self.assertEqual(len(threshold_rows), 3)
             self.assertEqual(threshold_rows[1][0], "100")
             self.assertEqual(threshold_rows[1][2:], ["33.333333", "5.000000"])
+
+    def test_full_output_csv_cardinalities_without_full_simulation(self):
+        convergence = SimulationSummary(
+            games=0,
+            series={
+                f"Strategy {strategy}": tuple(
+                    RatePoint(f"Strategy {strategy}", checkpoint, 0.25)
+                    for checkpoint in range(1, 50)
+                )
+                for strategy in range(20)
+            },
+            final_rates=(),
+        )
+        threshold = SimulationSummary(
+            games=0,
+            series={},
+            final_rates=tuple(
+                FinalRate(f"Pot {target}", 65450, 0.25, 0.01)
+                for target in range(50, 401, 10)
+            ),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            convergence_path = output / "convergence.csv"
+            threshold_path = output / "threshold.csv"
+
+            write_convergence_csv(convergence, convergence_path)
+            write_threshold_csv(threshold, threshold_path)
+
+            self.assertEqual(len(convergence_path.read_text().splitlines()) - 1, 980)
+            self.assertEqual(len(threshold_path.read_text().splitlines()) - 1, 36)
 
     def test_renderers_create_nonempty_svg_and_png_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -256,6 +315,62 @@ class PlotArtifactTests(unittest.TestCase):
     def test_best_target_annotation_points_inward_at_plot_edges(self):
         self.assertEqual(plot_bank_it._best_annotation_offset(0, 36), (18, 24))
         self.assertEqual(plot_bank_it._best_annotation_offset(35, 36), (-180, 24))
+
+    def test_default_constants_and_parser_values_are_exact(self):
+        self.assertEqual(
+            plot_bank_it.DEFAULT_OUTPUT_DIR,
+            Path("docs/design/artifacts/learn-plots"),
+        )
+        self.assertEqual(plot_bank_it.DEFAULT_SEED, 20260722)
+        self.assertEqual(plot_bank_it.DEFAULT_CONVERGENCE_EPOCHS, 50)
+        self.assertEqual(plot_bank_it.DEFAULT_THRESHOLD_EPOCHS, 10)
+        self.assertEqual(plot_bank_it.DEFAULT_CHECKPOINT_EVERY, 1000)
+
+        args = plot_bank_it._parse_args([])
+        self.assertEqual(args.output_dir, plot_bank_it.DEFAULT_OUTPUT_DIR)
+        self.assertEqual(args.seed, 20260722)
+        self.assertEqual(args.convergence_epochs, 50)
+        self.assertEqual(args.threshold_epochs, 10)
+        self.assertEqual(args.checkpoint_every, 1000)
+
+    def test_boundary_maximum_language_is_exact_in_plot_and_cli(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            svg_path = output / "threshold.svg"
+            render_threshold_sweep(self.summary, svg_path, output / "threshold.png")
+            svg = svg_path.read_text(encoding="utf-8")
+
+        self.assertEqual(
+            plot_bank_it._highest_observed_label(200),
+            "Highest observed in tested range: 200 (range maximum)",
+        )
+        self.assertIn("Highest observed in tested range:", svg)
+        self.assertIn("200 (range maximum)", svg)
+        self.assertIn("Larger targets were not evaluated", svg)
+        self.assertNotIn("Best fixed target", svg)
+
+        arguments = SimpleNamespace(
+            output_dir=Path("unused"),
+            seed=20260722,
+            convergence_epochs=50,
+            threshold_epochs=10,
+            checkpoint_every=1000,
+        )
+        output = io.StringIO()
+        with (
+            patch("plot_bank_it._parse_args", return_value=arguments),
+            patch(
+                "plot_bank_it._generate_plot_data",
+                return_value=((Path("one"),), self.summary, self.summary),
+            ),
+            redirect_stdout(output),
+        ):
+            plot_bank_it.main()
+
+        cli = output.getvalue()
+        self.assertIn("Highest observed in tested range: 200 (range maximum)", cli)
+        self.assertIn("Larger targets were not evaluated", cli)
+        self.assertNotIn("Observed best fixed target", cli)
 
 
 if __name__ == "__main__":
