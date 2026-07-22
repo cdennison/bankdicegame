@@ -223,4 +223,3 @@ Expected: Python, TypeScript, and build verification pass; only intended plot co
 git add plot_bank_it.py test_plot_bank_it.py requirements-plots.txt docs/design/artifacts/learn-plots
 git commit -m "feat: generate strategy comparison plots"
 ```
-

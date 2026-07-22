@@ -50,4 +50,3 @@ The script prints the seed, game counts, appearance counts, and winning fixed th
 - A reduced-size smoke mode generates both CSV and image formats during tests or CI.
 - The full command is run once to produce the checked-in artifacts.
 - Both PNGs are inspected for readable labels, axes, legends, and annotations at their exported dimensions.
-
