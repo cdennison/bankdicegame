@@ -66,4 +66,34 @@ describe('useGameController', () => {
     expect(unhandled).not.toHaveBeenCalled();
     window.removeEventListener('unhandledrejection', unhandled);
   });
+
+  it('advances a completed round once and reactivates banked seats', async () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useGameController({
+      timing: { thinking: 0, dice: 0, strategyReveal: 0, roundTransition: 0, banking: 0, bust: 0 },
+    }));
+    act(() => result.current.start(playersFixture(2, { humans: [0, 1] })));
+
+    for (let attempts = 0; attempts < 20 && result.current.state?.phase !== 'round-complete'; attempts += 1) {
+      const phase = result.current.state?.phase;
+      if (phase === 'awaiting-roll') act(() => result.current.roll());
+      if (phase === 'awaiting-decisions') {
+        act(() => {
+          result.current.submitDecision('seat-0', 'bank');
+          result.current.submitDecision('seat-1', 'bank');
+        });
+      }
+      await act(() => vi.runAllTimersAsync());
+    }
+
+    expect(result.current.state?.phase).toBe('round-complete');
+    expect(result.current.state?.players.every(({ active }) => !active)).toBe(true);
+
+    act(() => result.current.advanceRound());
+
+    expect(result.current.state?.phase).toBe('awaiting-roll');
+    expect(result.current.state?.round.roundNumber).toBe(2);
+    expect(result.current.state?.players.every(({ active }) => active)).toBe(true);
+    unmount();
+  });
 });

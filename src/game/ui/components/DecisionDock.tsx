@@ -6,8 +6,10 @@ interface DecisionDockProps {
   readonly humanActive: boolean;
   readonly legalActions: LegalActions;
   readonly labels?: DecisionLabels;
+  readonly nextRoundNumber: number;
   readonly phase: string;
   onRoll(): void;
+  onAdvanceRound(): void;
   onDecision(playerId: PlayerId, decision: 'stay' | 'bank'): void;
 }
 
@@ -16,8 +18,10 @@ export function DecisionDock({
   humanActive,
   legalActions,
   labels,
+  nextRoundNumber,
   phase,
   onRoll,
+  onAdvanceRound,
   onDecision,
 }: DecisionDockProps) {
   const hasDecision = Boolean(humanId && legalActions.canStay && legalActions.canBank && labels);
@@ -25,7 +29,13 @@ export function DecisionDock({
 
   return (
     <section className="action-dock" aria-label="Match actions">
-      {!humanActive ? (
+      {legalActions.canAdvanceRound ? (
+        <div className="game-actions single-action">
+          <button className="game-action" type="button" onClick={onAdvanceRound}>
+            Start Round #{nextRoundNumber}
+          </button>
+        </div>
+      ) : !humanActive ? (
         <p className="observation-status">You banked. Watch the round finish.</p>
       ) : canRoll ? (
         <div className="game-actions single-action">

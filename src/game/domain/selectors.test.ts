@@ -59,6 +59,7 @@ describe('game selectors', () => {
         canRoll: false,
         canStay: false,
         canBank: false,
+        canAdvanceRound: false,
       });
     },
   );
@@ -109,6 +110,28 @@ describe('game selectors', () => {
       canRoll: false,
       canStay: false,
       canBank: false,
+      canAdvanceRound: false,
     });
+  });
+
+  it.each([
+    ['awaiting-roll', false],
+    ['resolving-roll', false],
+    ['awaiting-decisions', false],
+    ['resolving-decisions', false],
+    ['round-complete', true],
+    ['game-complete', false],
+  ] as const)('allows advancing the round only while %s', (phase, canAdvanceRound) => {
+    const initial = createGame(fourSeatFixture());
+    const state = withState(initial, {
+      phase,
+      players: Object.freeze(
+        initial.players.map((player) =>
+          player.id === 'human' ? Object.freeze({ ...player, active: false }) : player,
+        ),
+      ),
+    });
+
+    expect(selectLegalActions(state, 'human').canAdvanceRound).toBe(canAdvanceRound);
   });
 });

@@ -54,8 +54,10 @@ export function MatchScreen({ controller, profiles = OPPONENT_PROFILES }: MatchS
         humanActive={humanState?.active ?? false}
         legalActions={controller.legalActions}
         labels={controller.decisionLabels}
+        nextRoundNumber={game.round.roundNumber + 1}
         phase={game.phase}
         onRoll={controller.roll}
+        onAdvanceRound={controller.advanceRound}
         onDecision={controller.submitDecision}
       />
       <RestartDialog

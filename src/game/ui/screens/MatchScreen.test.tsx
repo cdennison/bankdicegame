@@ -46,7 +46,7 @@ const controller = (overrides: Partial<GameController> = {}): GameController => 
     rank: index + 1,
   })),
   winners: [],
-  legalActions: { canRoll: true, canStay: false, canBank: false },
+  legalActions: { canRoll: true, canStay: false, canBank: false, canAdvanceRound: false },
   currentPlayer: players[0],
   decisionLabels: { stay: 'Roll On', bank: 'Bank' },
   start: vi.fn(),
@@ -54,6 +54,7 @@ const controller = (overrides: Partial<GameController> = {}): GameController => 
   submitDecision: vi.fn(),
   restart: vi.fn(),
   reset: vi.fn(),
+  advanceRound: vi.fn(),
   ...overrides,
 });
 
@@ -115,7 +116,7 @@ describe('MatchScreen', () => {
     const user = userEvent.setup();
     const value = controller({
       state: state({ phase: 'awaiting-decisions' }),
-      legalActions: { canRoll: false, canStay: true, canBank: true },
+      legalActions: { canRoll: false, canStay: true, canBank: true, canAdvanceRound: false },
       decisionLabels: { stay: label, bank: 'Bank' },
     });
     render(<MatchScreen controller={value} />);
@@ -128,7 +129,7 @@ describe('MatchScreen', () => {
 
   it('shows automatic play instead of controls while AI acts', () => {
     render(<MatchScreen controller={controller({
-      legalActions: { canRoll: false, canStay: false, canBank: false },
+      legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
       currentPlayer: players[1],
       presentation: { mode: 'thinking', narration: 'Opponent 1 is thinking.' },
     })} />);
@@ -148,7 +149,7 @@ describe('MatchScreen', () => {
     render(<MatchScreen controller={controller({
       state: inactiveState,
       rankings,
-      legalActions: { canRoll: false, canStay: false, canBank: false },
+      legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
       currentPlayer: players[1],
     })} />);
 
@@ -169,18 +170,54 @@ describe('MatchScreen', () => {
       rankings: controller().rankings.map((player) =>
         player.id === 'human-1' ? { ...player, active: false } : player,
       ),
-      legalActions: { canRoll: false, canStay: false, canBank: false },
+      legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
     })} />);
     expect(screen.getByText('You banked. Watch the round finish.')).toBeInTheDocument();
 
     rerender(<MatchScreen controller={controller({
       state: state({ round: { ...state().round, roundNumber: 2, rollNumber: 0, pot: 0 } }),
-      legalActions: { canRoll: true, canStay: false, canBank: false },
+      legalActions: { canRoll: true, canStay: false, canBank: false, canAdvanceRound: false },
     })} />);
 
     expect(screen.getByText('Round 2 / 10')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Roll' })).toBeEnabled();
     expect(screen.queryByText('You banked. Watch the round finish.')).not.toBeInTheDocument();
+  });
+
+  it('offers one enabled start action to a banked human and advances once', async () => {
+    const user = userEvent.setup();
+    const value = controller({
+      state: state({
+        phase: 'round-complete',
+        pendingRoll: undefined,
+        players: state().players.map((player) => ({ ...player, active: false })),
+        round: { ...state().round, activePlayerIds: [], lastDice: [3, 5] },
+      }),
+      legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: true },
+    });
+    render(<MatchScreen controller={value} />);
+
+    const actions = screen.getAllByRole('button', { name: 'Start Round #2' });
+    expect(actions).toHaveLength(1);
+    expect(actions[0]).toBeEnabled();
+    expect(screen.getByLabelText('Dice: 3 and 5')).toBeInTheDocument();
+    expect(screen.queryByText('You banked. Watch the round finish.')).not.toBeInTheDocument();
+
+    await user.click(actions[0]!);
+    expect(value.advanceRound).toHaveBeenCalledOnce();
+  });
+
+  it('does not offer a start action after round ten completes the game', () => {
+    render(<MatchScreen controller={controller({
+      state: state({
+        phase: 'game-complete',
+        round: { ...state().round, roundNumber: 10 },
+      }),
+      legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
+    })} />);
+
+    expect(screen.queryByRole('button', { name: /Start Round/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Match complete')).toBeInTheDocument();
   });
 
   it.each([

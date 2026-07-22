@@ -14,6 +14,7 @@ export interface LegalActions {
   readonly canRoll: boolean;
   readonly canStay: boolean;
   readonly canBank: boolean;
+  readonly canAdvanceRound: boolean;
 }
 
 export interface DecisionLabels {
@@ -25,6 +26,7 @@ const noActions = (): LegalActions => ({
   canRoll: false,
   canStay: false,
   canBank: false,
+  canAdvanceRound: false,
 });
 
 export const selectRankings = (state: GameState): readonly RankedPlayer[] => {
@@ -71,6 +73,14 @@ export const selectLegalActions = (
   state: GameState,
   playerId: PlayerId | undefined = defaultHumanId(state),
 ): LegalActions => {
+  if (state.phase === 'round-complete') {
+    return {
+      canRoll: false,
+      canStay: false,
+      canBank: false,
+      canAdvanceRound: true,
+    };
+  }
   if (!playerId) return noActions();
   const definition = state.config.players.find(({ id }) => id === playerId);
   const player = state.players.find(({ id }) => id === playerId);
@@ -81,6 +91,7 @@ export const selectLegalActions = (
       canRoll: state.round.currentPlayerId === playerId,
       canStay: false,
       canBank: false,
+      canAdvanceRound: false,
     };
   }
 
@@ -89,7 +100,7 @@ export const selectLegalActions = (
     state.decisionSnapshot?.pendingPlayerIds.includes(playerId) === true &&
     state.decisionSnapshot.decisions[playerId] === undefined;
   return isPending
-    ? { canRoll: false, canStay: true, canBank: true }
+    ? { canRoll: false, canStay: true, canBank: true, canAdvanceRound: false }
     : noActions();
 };
 

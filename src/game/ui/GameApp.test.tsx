@@ -10,11 +10,12 @@ const controller = vi.hoisted(() => ({
   presentation: { mode: 'idle', narration: '' },
   rankings: [] as Record<string, unknown>[],
   winners: [] as Record<string, unknown>[],
-  legalActions: { canRoll: false, canStay: false, canBank: false },
+  legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
   currentPlayer: undefined as Record<string, unknown> | undefined,
   decisionLabels: { stay: 'Roll On', bank: 'Bank' },
   start: vi.fn(),
   roll: vi.fn(),
+  advanceRound: vi.fn(),
   submitDecision: vi.fn(),
   restart: vi.fn(),
   reset: vi.fn(),
@@ -34,6 +35,7 @@ beforeEach(() => {
   controller.start.mockReset();
   controller.reset.mockReset();
   controller.restart.mockReset();
+  controller.advanceRound.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -103,7 +105,12 @@ describe('GameApp', () => {
     };
     controller.rankings = [{ ...human, score: 0, active: true, rank: 1 }];
     controller.currentPlayer = human;
-    controller.legalActions = { canRoll: true, canStay: false, canBank: false };
+    controller.legalActions = {
+      canRoll: true,
+      canStay: false,
+      canBank: false,
+      canAdvanceRound: false,
+    };
 
     render(<GameApp />);
 

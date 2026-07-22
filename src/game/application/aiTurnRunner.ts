@@ -171,9 +171,6 @@ export const runAutomaticTurn = async (
         narration: `Round ${state.round.roundNumber} complete.`,
       });
     }
-    await delay(timing.roundTransition, signal);
-    assertActive(signal);
-    controller.dispatch({ type: 'ADVANCE_ROUND' });
     return;
   }
 

@@ -159,7 +159,7 @@ describe('automatic turn runner', () => {
     expect(setup.trace.at(-1)).toBe('ROLL_DICE');
   });
 
-  it('presents a meaningful bust before round completion and advancement', async () => {
+  it('presents a meaningful bust and round completion without advancing the round', async () => {
     vi.useFakeTimers();
     const busted = completedBust();
     const setup = createController(busted.state, busted.events);
@@ -176,9 +176,25 @@ describe('automatic turn runner', () => {
       narration: 'Round 1 complete.',
       event: { type: 'RoundCompleted', roundNumber: 1 },
     });
-    await vi.advanceTimersByTimeAsync(50);
+    await vi.runAllTimersAsync();
     await running;
-    expect(setup.trace).toEqual(['bust', 'round-transition', 'ADVANCE_ROUND']);
+    expect(setup.trace).toEqual(['bust', 'round-transition']);
+    expect(setup.getState().phase).toBe('round-complete');
+  });
+
+  it('presents an unreported round completion without scheduling advancement', async () => {
+    vi.useFakeTimers();
+    const initial = Object.freeze({
+      ...createGame(playersFixture(2)),
+      phase: 'round-complete' as const,
+    });
+    const setup = createController(initial);
+
+    await runAutomaticTurn(setup.controller, timing, new AbortController().signal);
+    await vi.runAllTimersAsync();
+
+    expect(setup.trace).toEqual(['round-transition']);
+    expect(setup.getState()).toBe(initial);
   });
 
   it.each([
@@ -216,10 +232,6 @@ describe('automatic turn runner', () => {
       if (!result.ok) throw new Error('fixture decisions rejected');
       return result.state;
     }],
-    ['round transition', () => Object.freeze({
-      ...createGame(playersFixture(2)),
-      phase: 'round-complete' as const,
-    })],
   ])('dispatches nothing pending after cancellation during %s', async (_name, initial) => {
     vi.useFakeTimers();
     const setup = createController(initial());

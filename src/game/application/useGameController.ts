@@ -83,6 +83,7 @@ export interface GameController {
   readonly decisionLabels: DecisionLabels | undefined;
   start(config: GameConfig): void;
   roll(): void;
+  advanceRound(): void;
   submitDecision(playerId: PlayerId, decision: Decision): void;
   restart(): void;
   reset(): void;
@@ -114,6 +115,10 @@ export const useGameController = (
 
   const roll = useCallback(() => {
     dispatchEngine({ type: 'COMMAND', command: { type: 'ROLL_DICE' } });
+  }, []);
+
+  const advanceRound = useCallback(() => {
+    dispatchEngine({ type: 'COMMAND', command: { type: 'ADVANCE_ROUND' } });
   }, []);
 
   const submitDecision = useCallback((playerId: PlayerId, decision: Decision) => {
@@ -175,11 +180,12 @@ export const useGameController = (
     winners: state ? selectWinners(state) : [],
     legalActions: state
       ? selectLegalActions(state)
-      : { canRoll: false, canStay: false, canBank: false },
+      : { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
     currentPlayer: state ? selectCurrentPlayer(state) : undefined,
     decisionLabels: state ? selectDecisionLabels(state) : undefined,
     start,
     roll,
+    advanceRound,
     submitDecision,
     restart,
     reset,
