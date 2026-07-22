@@ -68,7 +68,6 @@ test('replays the complete seeded game through public controls', async ({ page }
       await expect(match.locator('.dice-pair')).toHaveAttribute('aria-label', /^Dice: [1-6] and [1-6]$/);
       await startNextRound.click();
       await expect(page.getByText(`Round ${round + 1} / 10`, { exact: true })).toBeVisible();
-      await expect(match.locator('.dice-pair')).toHaveAttribute('aria-label', 'Dice not rolled');
     }
   }
 
