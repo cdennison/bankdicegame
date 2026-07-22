@@ -70,10 +70,10 @@ def _ci95(appearances: int, win_share: float, win_share_squared: float) -> float
 def simulate_balanced_convergence(
     field: Sequence[Strategy],
     *,
-    players: int,
-    rounds: int,
+    players: int = 4,
+    rounds: int = 10,
     epochs: int,
-    seed: int,
+    seed: int = 20260722,
     checkpoint_every: int,
 ) -> SimulationSummary:
     """Simulate shuffled complete matchup epochs and retain cumulative rates."""

@@ -1,8 +1,9 @@
+import inspect
 import math
 import unittest
 from unittest.mock import patch
 
-from bank_it import Strategy, at_pot
+from bank_it import Strategy, at_pot, strategies, submitted_strategies
 from plot_bank_it import (
     all_strategy_field,
     fixed_threshold_field,
@@ -12,6 +13,13 @@ from plot_bank_it import (
 
 class PlotSimulationTests(unittest.TestCase):
     def test_fields_are_exact(self):
+        self.assertEqual(
+            tuple(strategy.name for strategy in all_strategy_field()),
+            tuple(
+                strategy.name
+                for strategy in strategies() + submitted_strategies()
+            ),
+        )
         self.assertEqual(len(all_strategy_field()), 20)
         self.assertEqual(len({strategy.name for strategy in all_strategy_field()}), 20)
         self.assertEqual(
@@ -21,6 +29,24 @@ class PlotSimulationTests(unittest.TestCase):
             ),
             tuple(range(50, 401, 10)),
         )
+
+    def test_simulation_defaults_are_public_and_usable(self):
+        parameters = inspect.signature(simulate_balanced_convergence).parameters
+        self.assertEqual(parameters["players"].default, 4)
+        self.assertEqual(parameters["rounds"].default, 10)
+        self.assertEqual(parameters["seed"].default, 20260722)
+
+        field = all_strategy_field()[:4]
+        with patch("plot_bank_it.play_game", return_value=[1, 1, 1, 1]) as game:
+            summary = simulate_balanced_convergence(
+                field,
+                epochs=1,
+                checkpoint_every=1,
+            )
+
+        self.assertEqual(summary.games, 1)
+        self.assertEqual({row.appearances for row in summary.final_rates}, {1})
+        self.assertEqual(game.call_args.kwargs["rounds"], 10)
 
     def test_all_strategy_field_rejects_duplicate_names(self):
         duplicate = Strategy("Duplicate", "", at_pot(100))
