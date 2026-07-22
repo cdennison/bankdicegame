@@ -115,13 +115,12 @@ describe('game selectors', () => {
   });
 
   it.each([
-    ['awaiting-roll', false],
-    ['resolving-roll', false],
-    ['awaiting-decisions', false],
-    ['resolving-decisions', false],
-    ['round-complete', true],
-    ['game-complete', false],
-  ] as const)('allows advancing the round only while %s', (phase, canAdvanceRound) => {
+    'awaiting-roll',
+    'resolving-roll',
+    'awaiting-decisions',
+    'resolving-decisions',
+    'game-complete',
+  ] as const)('does not allow advancing the round while %s', (phase) => {
     const initial = createGame(fourSeatFixture());
     const state = withState(initial, {
       phase,
@@ -132,6 +131,25 @@ describe('game selectors', () => {
       ),
     });
 
-    expect(selectLegalActions(state, 'human').canAdvanceRound).toBe(canAdvanceRound);
+    expect(selectLegalActions(state, 'human').canAdvanceRound).toBe(false);
+  });
+
+  it('exposes advancing as the only legal action when the round is complete', () => {
+    const initial = createGame(fourSeatFixture());
+    const state = withState(initial, {
+      phase: 'round-complete',
+      players: Object.freeze(
+        initial.players.map((player) =>
+          player.id === 'human' ? Object.freeze({ ...player, active: false }) : player,
+        ),
+      ),
+    });
+
+    expect(selectLegalActions(state, 'human')).toEqual({
+      canRoll: false,
+      canStay: false,
+      canBank: false,
+      canAdvanceRound: true,
+    });
   });
 });
