@@ -39,7 +39,7 @@ Add tests that stage and commit `[3, 5]`, assert `pendingRoll` is cleared while 
 
 - [ ] **Step 2: Verify RED**
 
-Run: `npm test -- --run src/game/domain/reducer.test.ts src/game/ui/screens/MatchScreen.test.tsx`  
+Run: `npm test -- --run src/game/domain/reducer.test.ts src/game/ui/screens/MatchScreen.test.tsx`
 Expected: FAIL because `RoundState` does not retain committed dice and idle presentation renders the empty dice state.
 
 - [ ] **Step 3: Implement the minimal domain-backed persistence**
@@ -48,7 +48,7 @@ Add the optional readonly field, set it from `current.pendingRoll.dice` in `COMM
 
 - [ ] **Step 4: Verify GREEN**
 
-Run: `npm test -- --run src/game/domain/reducer.test.ts src/game/ui/screens/MatchScreen.test.tsx && npm run typecheck`  
+Run: `npm test -- --run src/game/domain/reducer.test.ts src/game/ui/screens/MatchScreen.test.tsx && npm run typecheck`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -88,7 +88,7 @@ Assert `advanceRound()` dispatches once from `round-complete`. Render round 1 co
 
 - [ ] **Step 3: Verify RED**
 
-Run: `npm test -- --run src/game/domain/selectors.test.ts src/game/application src/game/ui/screens/MatchScreen.test.tsx`  
+Run: `npm test -- --run src/game/domain/selectors.test.ts src/game/application src/game/ui/screens/MatchScreen.test.tsx`
 Expected: FAIL because the runner auto-advances and the controller/dock lack the manual action.
 
 - [ ] **Step 4: Implement the manual gate**
@@ -97,7 +97,7 @@ Remove the automatic delay/dispatch in the `round-complete` branch while preserv
 
 - [ ] **Step 5: Verify GREEN**
 
-Run: `npm test -- --run src/game/domain/selectors.test.ts src/game/application src/game/ui/screens/MatchScreen.test.tsx && npm run typecheck`  
+Run: `npm test -- --run src/game/domain/selectors.test.ts src/game/application src/game/ui/screens/MatchScreen.test.tsx && npm run typecheck`
 Expected: PASS with no automatic `ADVANCE_ROUND` dispatch.
 
 - [ ] **Step 6: Commit**
@@ -138,7 +138,7 @@ Assert the match root receives `speed-mode` only while enabled and the toggle st
 
 - [ ] **Step 3: Verify RED**
 
-Run: `npm test -- --run src/game/application/useGameController.test.tsx src/game/ui`  
+Run: `npm test -- --run src/game/application/useGameController.test.tsx src/game/ui`
 Expected: FAIL because the preference and toggle do not exist.
 
 - [ ] **Step 4: Implement Speed Mode**
@@ -170,4 +170,3 @@ Expected: all tests pass; Playwright mobile and desktop complete all ten rounds 
 git add src/game e2e/game.spec.ts
 git commit -m "feat: add speed mode"
 ```
-

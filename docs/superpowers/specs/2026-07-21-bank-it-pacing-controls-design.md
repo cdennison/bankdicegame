@@ -1,6 +1,6 @@
 # Bank It Pacing Controls Design
 
-**Status:** Approved  
+**Status:** Approved
 **Date:** 2026-07-21
 
 ## Summary
@@ -48,4 +48,3 @@ The automatic runner continues to present bust, banking, and round-complete even
 - Selector/controller/UI tests prove the exact manual action and one dispatch.
 - Speed tests prove default-off timing, zero-delay behavior, animation suppression class, rematch persistence, and New Game reset.
 - The seeded Playwright journey uses `Start Round #X` for rounds 2–10 and still produces `458 / 780 / 360`.
-
