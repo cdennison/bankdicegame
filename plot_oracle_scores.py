@@ -3,7 +3,38 @@
 
 from __future__ import annotations
 
+import argparse
+import csv
+import math
 import random
+import statistics
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Sequence
+
+from plot_bank_it import (
+    CORAL,
+    GOLD,
+    MUTED,
+    NIGHT,
+    PAPER,
+    SLATE,
+    _pyplot,
+    _save_figure,
+    _style_axes,
+)
+
+
+DEFAULT_OUTPUT_DIR = Path("docs/design/artifacts/learn-plots")
+
+
+@dataclass(frozen=True, slots=True)
+class Histogram:
+    width: int
+    upper: int
+    edges: tuple[int, ...]
+    counts: tuple[int, ...]
+    overflow: int
 
 
 def simulate_oracle_game(rng: random.Random, *, rounds: int = 10) -> int:
@@ -48,3 +79,228 @@ def simulate_oracle_scores(
         simulate_oracle_game(random.Random(seed), rounds=rounds)
         for seed in range(seed_start, seed_start + games)
     )
+
+
+def _percentile(ordered: tuple[int, ...], probability: float) -> float:
+    position = (len(ordered) - 1) * probability
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    if lower == upper:
+        return float(ordered[lower])
+    fraction = position - lower
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
+
+
+def build_histogram(scores: tuple[int, ...]) -> Histogram:
+    """Build deterministic visible buckets plus an explicit long-tail overflow."""
+    if not scores:
+        raise ValueError("scores must not be empty")
+    ordered = tuple(sorted(scores))
+    iqr = _percentile(ordered, 0.75) - _percentile(ordered, 0.25)
+    raw_width = 2 * iqr / (len(ordered) ** (1 / 3))
+    width = max(50, math.ceil(raw_width / 50) * 50)
+    percentile_upper = math.ceil(_percentile(ordered, 0.999) / width) * width
+    highest_full_edge = max(width, ordered[-1] // width * width)
+    upper = min(percentile_upper, highest_full_edge)
+    edges = tuple(range(0, upper + width, width))
+    counts = [0] * (len(edges) - 1)
+    overflow = 0
+    for score in scores:
+        if score >= upper:
+            overflow += 1
+        else:
+            counts[min(score // width, len(counts) - 1)] += 1
+    return Histogram(width, upper, edges, tuple(counts), overflow)
+
+
+def write_histogram_csv(
+    histogram: Histogram,
+    path: Path,
+    *,
+    total: int,
+) -> None:
+    """Write every visible bucket and the disclosed overflow as percentages."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(("bucket_start", "bucket_end", "count", "percent"))
+        for start, end, count in zip(
+            histogram.edges,
+            histogram.edges[1:],
+            histogram.counts,
+        ):
+            writer.writerow((start, end, count, f"{count / total * 100:.6f}"))
+        writer.writerow(
+            (
+                histogram.upper,
+                "overflow",
+                histogram.overflow,
+                f"{histogram.overflow / total * 100:.6f}",
+            )
+        )
+
+
+def render_histogram(
+    scores: tuple[int, ...],
+    histogram: Histogram,
+    svg_path: Path,
+    png_path: Path,
+    *,
+    target: int = 1_000,
+) -> float:
+    """Render the oracle score distribution and return the exact target rate."""
+    total = len(scores)
+    at_least_target = sum(score >= target for score in scores)
+    rate = at_least_target / total * 100
+    percentages = [count / total * 100 for count in histogram.counts]
+    centers = [
+        (start + end) / 2
+        for start, end in zip(histogram.edges, histogram.edges[1:])
+    ]
+
+    pyplot = _pyplot()
+    figure, axis = pyplot.subplots(figsize=(14, 8.5), constrained_layout=True)
+    figure.patch.set_facecolor(NIGHT)
+    _style_axes(axis)
+    axis.bar(
+        centers,
+        percentages,
+        width=histogram.width * 0.88,
+        color=GOLD,
+        label="Oracle-optimal score",
+    )
+    axis.axvline(
+        target,
+        color=CORAL,
+        linestyle="--",
+        linewidth=2,
+        label=f"Reference score ({target:,})",
+    )
+    axis.text(
+        0.985,
+        0.96,
+        f"P(oracle-optimal score ≥ {target:,}) = {rate:.2f}%",
+        transform=axis.transAxes,
+        horizontalalignment="right",
+        verticalalignment="top",
+        color=PAPER,
+        fontsize=12,
+        fontweight="bold",
+        bbox={
+            "boxstyle": "round,pad=0.45",
+            "facecolor": SLATE,
+            "edgecolor": CORAL,
+        },
+    )
+    axis.set_title(
+        "How high can perfect-hindsight Bank It scores go?",
+        color=PAPER,
+        fontsize=22,
+        fontweight="bold",
+        loc="left",
+        pad=31,
+    )
+    axis.text(
+        0,
+        1.015,
+        f"{total:,} independent seeds · 10 rounds per game · "
+        "perfect-hindsight banking",
+        transform=axis.transAxes,
+        color=MUTED,
+        fontsize=11,
+    )
+    axis.set_xlabel("Oracle-optimal score", color=PAPER, labelpad=10)
+    axis.set_ylabel("Games (%)", color=PAPER, labelpad=10)
+    axis.set_xlim(0, histogram.upper)
+    legend = axis.legend(loc="upper left", frameon=False, fontsize=9)
+    for text in legend.get_texts():
+        text.set_color(PAPER)
+    overflow_rate = histogram.overflow / total * 100
+    axis.text(
+        0.5,
+        -0.14,
+        f"Visible bucket width: {histogram.width:,} points · "
+        f"Overflow at ≥ {histogram.upper:,}: {histogram.overflow:,} games "
+        f"({overflow_rate:.3f}%)",
+        transform=axis.transAxes,
+        horizontalalignment="center",
+        color=MUTED,
+        fontsize=9.5,
+    )
+    _save_figure(figure, svg_path, png_path)
+    pyplot.close(figure)
+    return rate
+
+
+def generate_oracle_artifacts(
+    output_dir: Path,
+    *,
+    games: int = 100_000,
+    rounds: int = 10,
+    seed_start: int = 0,
+) -> tuple[Path, Path, Path, float]:
+    """Simulate independent games and write the auditable histogram artifacts."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    scores = simulate_oracle_scores(
+        games=games,
+        rounds=rounds,
+        seed_start=seed_start,
+    )
+    assert len(scores) == games
+    histogram = build_histogram(scores)
+    assert sum(histogram.counts) + histogram.overflow == games
+
+    csv_path = output_dir / "oracle-score-distribution.csv"
+    png_path = output_dir / "oracle-score-distribution.png"
+    svg_path = output_dir / "oracle-score-distribution.svg"
+    write_histogram_csv(histogram, csv_path, total=games)
+    rate = render_histogram(scores, histogram, svg_path, png_path)
+    return csv_path, png_path, svg_path, rate
+
+
+def _positive_integer(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate the oracle-optimal Bank It score distribution."
+    )
+    parser.add_argument("--games", type=_positive_integer, default=100_000)
+    parser.add_argument("--rounds", type=_positive_integer, default=10)
+    parser.add_argument("--seed-start", type=int, default=0)
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    return parser.parse_args(argv)
+
+
+def main() -> None:
+    args = _parse_args()
+    scores = simulate_oracle_scores(
+        games=args.games,
+        rounds=args.rounds,
+        seed_start=args.seed_start,
+    )
+    histogram = build_histogram(scores)
+    csv_path = args.output_dir / "oracle-score-distribution.csv"
+    png_path = args.output_dir / "oracle-score-distribution.png"
+    svg_path = args.output_dir / "oracle-score-distribution.svg"
+    write_histogram_csv(histogram, csv_path, total=len(scores))
+    rate = render_histogram(scores, histogram, svg_path, png_path)
+
+    print(f"Games: {len(scores):,} independent seeds")
+    print(f"Rounds per game: {args.rounds}")
+    print(f"Seed range: {args.seed_start:,}–{args.seed_start + len(scores) - 1:,}")
+    print(f"Mean score: {statistics.fmean(scores):,.2f}")
+    print(f"Median score: {statistics.median(scores):,.2f}")
+    print(f"Visible maximum: {histogram.upper:,}")
+    print(f"Overflow: {histogram.overflow:,}")
+    print(f"P(score ≥ 1,000): {rate:.2f}%")
+    for path in (csv_path, png_path, svg_path):
+        print(f"Wrote: {path}")
+
+
+if __name__ == "__main__":
+    main()
