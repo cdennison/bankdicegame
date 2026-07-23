@@ -2,23 +2,24 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Simulate and plot the distribution of oracle-optimal final scores across 100,000 solo ten-round Bank It games, including the observed probability of scoring at least 1,000.
+**Goal:** Simulate and compare distributions and P1–P99 percentile curves for oracle-optimal final scores across 10,000 solo one-round and ten-round Bank It games.
 
-**Architecture:** Add a focused Python module that simulates complete dice sequences without a player strategy, records the final pot immediately before each dangerous seven, and sums ten such round maxima. The same module converts scores into an auditable histogram, writes CSV data, and renders PNG/SVG artifacts using the repository's existing Matplotlib visual language.
+**Architecture:** Use one focused Python module to simulate complete dice sequences without a player strategy, record the final pot immediately before each dangerous seven, and sum the requested number of round maxima. Convert each round-count sample into an auditable histogram and empirical percentile series, then write CSV data and render PNG/SVG artifacts using the repository's existing Matplotlib visual language.
 
 **Tech Stack:** Python 3 standard library, Matplotlib 3.10, `unittest`
 
 ## Global Constraints
 
-- Simulate exactly 100,000 independent games using seeds 0 through 99,999.
-- Each game contains exactly ten rounds.
+- Simulate exactly 10,000 independent games using seeds 0 through 9,999 for each round count.
+- Generate matching one-round and ten-round artifact sets.
 - Follow the tested Python rules, including three safe rolls and the safe-roll 70 bonus for a total of seven.
 - After the third roll, the first total of seven ends the round.
 - The oracle score for a round is the pot immediately before that dangerous seven.
 - There are no opponents and no banking threshold.
 - Generate PNG, SVG, and CSV artifacts in `docs/design/artifacts/learn-plots/`.
-- The plot must mark 1,000 and state the observed percentage at or above it.
-- Histogram counts, including overflow, must sum to 100,000.
+- Each distribution plot must mark 1,000 and state the observed percentage at or above it.
+- Each percentile plot must contain P1 through P99, use a logarithmic score axis, mark 1,000, and annotate P50/P90/P95/P99.
+- Histogram counts, including overflow, must sum to 10,000 for each round count.
 
 ---
 
@@ -389,14 +390,14 @@ Run:
 
 ```bash
 .venv/bin/python plot_oracle_scores.py \
-  --games 100000 \
+  --games 10000 \
   --rounds 10 \
   --seed-start 0 \
   --output-dir docs/design/artifacts/learn-plots
 ```
 
 Expected: three artifact paths and summary statistics are printed; the CSV
-counts sum to 100,000.
+counts sum to 10,000.
 
 - [ ] **Step 7: Run complete Python verification**
 
@@ -428,4 +429,316 @@ git add \
   docs/design/artifacts/learn-plots/oracle-score-distribution.png \
   docs/design/artifacts/learn-plots/oracle-score-distribution.svg
 git commit -m "feat: plot oracle-optimal score distribution"
+```
+
+### Task 3: One-round comparison and percentile curves
+
+**Files:**
+- Modify: `plot_oracle_scores.py`
+- Modify: `test_plot_oracle_scores.py`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-percentiles-10-rounds.csv`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-percentiles-10-rounds.png`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-percentiles-10-rounds.svg`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-distribution-1-round.csv`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-distribution-1-round.png`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-distribution-1-round.svg`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-percentiles-1-round.csv`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-percentiles-1-round.png`
+- Create: `docs/design/artifacts/learn-plots/oracle-score-percentiles-1-round.svg`
+
+**Interfaces:**
+- Consumes: `simulate_oracle_scores(games=10_000, rounds=N, seed_start=0)` for `N in (10, 1)`.
+- Produces: `PercentilePoint(percentile: int, score: float)`.
+- Produces: `build_percentiles(scores: tuple[int, ...]) -> tuple[PercentilePoint, ...]`.
+- Produces: `write_percentile_csv(points: tuple[PercentilePoint, ...], path: Path) -> None`.
+- Produces: `render_percentiles(points, svg_path, png_path, *, games, rounds, seed_start, target=1_000) -> None`.
+- Produces: `generate_round_comparison_artifacts(output_dir: Path, *, games: int = 10_000, seed_start: int = 0) -> tuple[Path, ...]`.
+
+- [ ] **Step 1: Write failing percentile and comparison tests**
+
+Extend `test_plot_oracle_scores.py` imports and add:
+
+```python
+from plot_oracle_scores import (
+    build_percentiles,
+    generate_round_comparison_artifacts,
+    render_percentiles,
+    write_percentile_csv,
+)
+
+
+class OraclePercentileTests(unittest.TestCase):
+    def test_percentiles_are_p1_through_p99_with_linear_interpolation(self):
+        points = build_percentiles((0, 100, 200, 300, 400))
+
+        self.assertEqual(
+            tuple(point.percentile for point in points),
+            tuple(range(1, 100)),
+        )
+        by_percentile = {point.percentile: point.score for point in points}
+        self.assertEqual(by_percentile[25], 100.0)
+        self.assertEqual(by_percentile[50], 200.0)
+        self.assertEqual(by_percentile[75], 300.0)
+        self.assertEqual(by_percentile[99], 396.0)
+
+    def test_percentile_csv_has_exact_order_and_rows(self):
+        points = build_percentiles((100, 200, 300, 400))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "percentiles.csv"
+            write_percentile_csv(points, path)
+            with path.open(encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertEqual(list(rows[0]), ["percentile", "score"])
+        self.assertEqual(len(rows), 99)
+        self.assertEqual(rows[0]["percentile"], "1")
+        self.assertEqual(rows[-1]["percentile"], "99")
+
+    def test_percentile_renderer_discloses_log_scale_and_key_values(self):
+        points = build_percentiles(tuple(range(100, 10_100, 100)))
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            svg = output / "percentiles.svg"
+            render_percentiles(
+                points,
+                svg,
+                output / "percentiles.png",
+                games=100,
+                rounds=1,
+                seed_start=5,
+            )
+            text = svg.read_text(encoding="utf-8")
+
+        self.assertIn("P1–P99", text)
+        self.assertIn("log score axis", text)
+        self.assertIn("100 independent seeds (5–104)", text)
+        self.assertIn("1 round per game", text)
+        for percentile in (50, 90, 95, 99):
+            self.assertIn(f"P{percentile}", text)
+
+    def test_comparison_generator_writes_matching_artifact_sets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = generate_round_comparison_artifacts(
+                Path(directory),
+                games=100,
+                seed_start=0,
+            )
+            names = {path.name for path in paths}
+
+        self.assertEqual(len(paths), 12)
+        self.assertEqual(
+            names,
+            {
+                "oracle-score-distribution.csv",
+                "oracle-score-distribution.png",
+                "oracle-score-distribution.svg",
+                "oracle-score-percentiles-10-rounds.csv",
+                "oracle-score-percentiles-10-rounds.png",
+                "oracle-score-percentiles-10-rounds.svg",
+                "oracle-score-distribution-1-round.csv",
+                "oracle-score-distribution-1-round.png",
+                "oracle-score-distribution-1-round.svg",
+                "oracle-score-percentiles-1-round.csv",
+                "oracle-score-percentiles-1-round.png",
+                "oracle-score-percentiles-1-round.svg",
+            },
+        )
+```
+
+- [ ] **Step 2: Run the focused suite and confirm RED**
+
+Run:
+
+```bash
+.venv/bin/python -m unittest test_plot_oracle_scores.py
+```
+
+Expected: import failures for the four new percentile/comparison interfaces.
+
+- [ ] **Step 3: Implement empirical percentile data and CSV**
+
+Add:
+
+```python
+@dataclass(frozen=True, slots=True)
+class PercentilePoint:
+    percentile: int
+    score: float
+
+
+def build_percentiles(scores: tuple[int, ...]) -> tuple[PercentilePoint, ...]:
+    if not scores:
+        raise ValueError("scores must not be empty")
+    ordered = tuple(sorted(scores))
+    return tuple(
+        PercentilePoint(percentile, _percentile(ordered, percentile / 100))
+        for percentile in range(1, 100)
+    )
+
+
+def write_percentile_csv(
+    points: tuple[PercentilePoint, ...],
+    path: Path,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(("percentile", "score"))
+        for point in points:
+            writer.writerow((point.percentile, f"{point.score:.6f}"))
+```
+
+- [ ] **Step 4: Implement the percentile renderer**
+
+Use the existing palette and save helpers. Plot percentile on the x-axis and
+score on a logarithmic y-axis. Draw a coral horizontal line at 1,000. Mark
+P50, P90, P95, and P99 with points and exact score labels. Include dynamic
+seed count/range and singular/plural round copy. The footer must say:
+
+```text
+P1–P99 empirical quantiles · log score axis
+```
+
+Reject nonpositive `games` or `rounds`, negative `seed_start`, and percentile
+scores at or below zero before rendering the log axis.
+
+- [ ] **Step 5: Generalize distribution artifact stems**
+
+Add an optional `stem: str = "oracle-score-distribution"` argument to
+`_generate_oracle_artifacts` and `generate_oracle_artifacts`. Build the CSV,
+PNG, and SVG names from `stem`, preserving all existing callers and the
+ten-round canonical artifact names.
+
+- [ ] **Step 6: Implement the comparison generator**
+
+Implement:
+
+```python
+def generate_round_comparison_artifacts(
+    output_dir: Path,
+    *,
+    games: int = 10_000,
+    seed_start: int = 0,
+) -> tuple[Path, ...]:
+    written = []
+    for rounds, distribution_stem, percentile_stem in (
+        (
+            10,
+            "oracle-score-distribution",
+            "oracle-score-percentiles-10-rounds",
+        ),
+        (
+            1,
+            "oracle-score-distribution-1-round",
+            "oracle-score-percentiles-1-round",
+        ),
+    ):
+        generation = _generate_oracle_artifacts(
+            output_dir,
+            games=games,
+            rounds=rounds,
+            seed_start=seed_start,
+            stem=distribution_stem,
+        )
+        points = build_percentiles(generation.scores)
+        percentile_csv = output_dir / f"{percentile_stem}.csv"
+        percentile_png = output_dir / f"{percentile_stem}.png"
+        percentile_svg = output_dir / f"{percentile_stem}.svg"
+        write_percentile_csv(points, percentile_csv)
+        render_percentiles(
+            points,
+            percentile_svg,
+            percentile_png,
+            games=games,
+            rounds=rounds,
+            seed_start=seed_start,
+        )
+        written.extend((*generation.paths, percentile_csv, percentile_png, percentile_svg))
+    return tuple(written)
+```
+
+Add a `--comparison` flag to the CLI. When present, call
+`generate_round_comparison_artifacts`; otherwise preserve the existing
+single-round-count CLI behavior.
+
+- [ ] **Step 7: Run focused GREEN verification**
+
+Run:
+
+```bash
+.venv/bin/python -m unittest test_plot_oracle_scores.py
+```
+
+Expected: all oracle simulation, histogram, percentile, and comparison tests
+pass.
+
+- [ ] **Step 8: Generate the full comparison artifacts**
+
+Run:
+
+```bash
+.venv/bin/python plot_oracle_scores.py \
+  --comparison \
+  --games 10000 \
+  --seed-start 0 \
+  --output-dir docs/design/artifacts/learn-plots
+```
+
+Expected: twelve artifact paths are written from the same seeds for one-round
+and ten-round samples.
+
+- [ ] **Step 9: Verify artifact accounting**
+
+Run a Python check that asserts:
+
+```python
+for distribution_csv in (
+    "oracle-score-distribution.csv",
+    "oracle-score-distribution-1-round.csv",
+):
+    rows = list(csv.DictReader((output / distribution_csv).open()))
+    assert sum(int(row["count"]) for row in rows) == 10_000
+
+for percentile_csv in (
+    "oracle-score-percentiles-10-rounds.csv",
+    "oracle-score-percentiles-1-round.csv",
+):
+    rows = list(csv.DictReader((output / percentile_csv).open()))
+    assert [int(row["percentile"]) for row in rows] == list(range(1, 100))
+```
+
+- [ ] **Step 10: Run complete Python verification**
+
+Run:
+
+```bash
+.venv/bin/python -m unittest \
+  test_bank_it.py test_plot_bank_it.py test_plot_oracle_scores.py
+```
+
+Expected: every test passes with no failures or errors.
+
+- [ ] **Step 11: Inspect all four PNG charts**
+
+Inspect:
+
+- `oracle-score-distribution.png`
+- `oracle-score-percentiles-10-rounds.png`
+- `oracle-score-distribution-1-round.png`
+- `oracle-score-percentiles-1-round.png`
+
+Confirm titles, seed ranges, round counts, reference lines, probability labels,
+P50/P90/P95/P99 annotations, log/symlog disclosures, and footer copy are
+legible and unclipped.
+
+- [ ] **Step 12: Commit Task 3**
+
+```bash
+git add \
+  plot_oracle_scores.py \
+  test_plot_oracle_scores.py \
+  docs/design/artifacts/learn-plots/oracle-score-distribution-1-round.* \
+  docs/design/artifacts/learn-plots/oracle-score-percentiles-10-rounds.* \
+  docs/design/artifacts/learn-plots/oracle-score-percentiles-1-round.*
+git commit -m "feat: compare one-round oracle score percentiles"
 ```
