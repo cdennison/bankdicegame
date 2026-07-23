@@ -147,6 +147,7 @@ def render_histogram(
     png_path: Path,
     *,
     target: int = 1_000,
+    rounds: int = 10,
 ) -> float:
     """Render the oracle score distribution and return the exact target rate."""
     total = len(scores)
@@ -203,7 +204,7 @@ def render_histogram(
     axis.text(
         0,
         1.015,
-        f"{total:,} independent seeds · 10 rounds per game · "
+        f"{total:,} independent seeds · {rounds} rounds per game · "
         "perfect-hindsight banking",
         transform=axis.transAxes,
         color=MUTED,
@@ -254,7 +255,13 @@ def generate_oracle_artifacts(
     png_path = output_dir / "oracle-score-distribution.png"
     svg_path = output_dir / "oracle-score-distribution.svg"
     write_histogram_csv(histogram, csv_path, total=games)
-    rate = render_histogram(scores, histogram, svg_path, png_path)
+    rate = render_histogram(
+        scores,
+        histogram,
+        svg_path,
+        png_path,
+        rounds=rounds,
+    )
     return csv_path, png_path, svg_path, rate
 
 
@@ -288,7 +295,13 @@ def main() -> None:
     png_path = args.output_dir / "oracle-score-distribution.png"
     svg_path = args.output_dir / "oracle-score-distribution.svg"
     write_histogram_csv(histogram, csv_path, total=len(scores))
-    rate = render_histogram(scores, histogram, svg_path, png_path)
+    rate = render_histogram(
+        scores,
+        histogram,
+        svg_path,
+        png_path,
+        rounds=args.rounds,
+    )
 
     print(f"Games: {len(scores):,} independent seeds")
     print(f"Rounds per game: {args.rounds}")

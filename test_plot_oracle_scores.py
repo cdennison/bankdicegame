@@ -124,6 +124,10 @@ class OracleArtifactTests(unittest.TestCase):
             self.assertTrue(csv_path.exists())
             self.assertTrue(png_path.exists())
             self.assertTrue(svg_path.exists())
+            self.assertIn(
+                "2 rounds per game",
+                svg_path.read_text(encoding="utf-8"),
+            )
             self.assertGreaterEqual(rate, 0.0)
             self.assertLessEqual(rate, 100.0)
 
