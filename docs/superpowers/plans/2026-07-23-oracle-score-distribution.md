@@ -353,7 +353,9 @@ vertical line at 1,000 and annotate:
 P(oracle-optimal score ≥ 1,000) = XX.XX%
 ```
 
-The subtitle states `100,000 independent seeds · 10 rounds per game · perfect-hindsight banking`.
+The subtitle derives the actual game count and states
+`10,000 independent seeds · 10 rounds per game · perfect-hindsight banking`
+for the approved artifact.
 The footer reports the visible bucket width and overflow count/percentage.
 `render_histogram` returns the exact observed percentage computed directly
 from the raw scores, not from histogram buckets.
@@ -384,7 +386,7 @@ Run:
 
 Expected: eight tests pass.
 
-- [ ] **Step 6: Generate the approved 100,000-game artifacts**
+- [ ] **Step 6: Generate the approved 10,000-game artifacts**
 
 Run:
 
