@@ -1,5 +1,7 @@
 import csv
 import random
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -71,6 +73,62 @@ class OracleSimulationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "rounds must be positive"):
             simulate_oracle_scores(games=1, rounds=0)
 
+    def test_score_batch_rejects_negative_seed_start(self):
+        with self.assertRaisesRegex(ValueError, "seed_start must be nonnegative"):
+            simulate_oracle_scores(games=1, seed_start=-1)
+
+    def test_scores_match_structurally_independent_reference_simulator(self):
+        def reference_score(seed: int) -> int:
+            rng = random.Random(seed)
+            score = 0
+            for _ in range(10):
+                safe_rolls = [
+                    rng.randint(1, 6) + rng.randint(1, 6)
+                    for _ in range(3)
+                ]
+                pot = sum(70 if total == 7 else total for total in safe_rolls)
+                while True:
+                    die_1 = rng.randint(1, 6)
+                    die_2 = rng.randint(1, 6)
+                    if die_1 + die_2 == 7:
+                        break
+                    if die_1 == die_2:
+                        pot *= 2
+                    else:
+                        pot += die_1 + die_2
+                score += pot
+            return score
+
+        seeds = (0, 1, 7, 42, 999)
+
+        actual = tuple(
+            simulate_oracle_game(random.Random(seed))
+            for seed in seeds
+        )
+
+        self.assertEqual(
+            actual,
+            tuple(reference_score(seed) for seed in seeds),
+        )
+
+    def test_cli_rejects_negative_seed_start(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "plot_oracle_scores.py",
+                "--games",
+                "1",
+                "--seed-start",
+                "-1",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("must be a nonnegative integer", result.stderr)
+
 
 class OracleArtifactTests(unittest.TestCase):
     def test_histogram_accounts_for_every_score_including_overflow(self):
@@ -117,17 +175,22 @@ class OracleArtifactTests(unittest.TestCase):
                 Path(directory),
                 games=20,
                 rounds=2,
-                seed_start=0,
+                seed_start=5,
             )
             csv_path, png_path, svg_path, rate = paths
 
             self.assertTrue(csv_path.exists())
             self.assertTrue(png_path.exists())
             self.assertTrue(svg_path.exists())
-            self.assertIn(
-                "2 rounds per game",
-                svg_path.read_text(encoding="utf-8"),
-            )
+            with csv_path.open(encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+            svg_text = svg_path.read_text(encoding="utf-8")
+            self.assertEqual(sum(int(row["count"]) for row in rows), 20)
+            self.assertEqual(rows[-1]["bucket_end"], "overflow")
+            self.assertIn("20 independent seeds (5–24)", svg_text)
+            self.assertIn("2 rounds per game", svg_text)
+            self.assertIn("Symlog x-axis", svg_text)
+            self.assertIn(f"= {rate:.2f}%", svg_text)
             self.assertGreaterEqual(rate, 0.0)
             self.assertLessEqual(rate, 100.0)
 

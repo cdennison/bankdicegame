@@ -37,6 +37,14 @@ class Histogram:
     overflow: int
 
 
+@dataclass(frozen=True, slots=True)
+class _OracleArtifactGeneration:
+    paths: tuple[Path, Path, Path]
+    scores: tuple[int, ...]
+    histogram: Histogram
+    rate: float
+
+
 def simulate_oracle_game(rng: random.Random, *, rounds: int = 10) -> int:
     """Return the ten-round score earned by banking just before every bust."""
     if rounds <= 0:
@@ -75,6 +83,8 @@ def simulate_oracle_scores(
         raise ValueError("games must be positive")
     if rounds <= 0:
         raise ValueError("rounds must be positive")
+    if seed_start < 0:
+        raise ValueError("seed_start must be nonnegative")
     return tuple(
         simulate_oracle_game(random.Random(seed), rounds=rounds)
         for seed in range(seed_start, seed_start + games)
@@ -148,6 +158,7 @@ def render_histogram(
     *,
     target: int = 1_000,
     rounds: int = 10,
+    seed_start: int = 0,
 ) -> float:
     """Render the oracle score distribution and return the exact target rate."""
     total = len(scores)
@@ -163,6 +174,7 @@ def render_histogram(
     figure, axis = pyplot.subplots(figsize=(14, 8.5), constrained_layout=True)
     figure.patch.set_facecolor(NIGHT)
     _style_axes(axis)
+    axis.set_xscale("symlog", linthresh=target, linscale=2, base=10)
     axis.bar(
         centers,
         percentages,
@@ -204,7 +216,9 @@ def render_histogram(
     axis.text(
         0,
         1.015,
-        f"{total:,} independent seeds · {rounds} rounds per game · "
+        f"{total:,} independent seeds "
+        f"({seed_start:,}–{seed_start + total - 1:,}) · "
+        f"{rounds} rounds per game · "
         "perfect-hindsight banking",
         transform=axis.transAxes,
         color=MUTED,
@@ -220,7 +234,7 @@ def render_histogram(
     axis.text(
         0.5,
         -0.14,
-        f"Visible bucket width: {histogram.width:,} points · "
+        f"Symlog x-axis · Visible bucket width: {histogram.width:,} points · "
         f"Overflow at ≥ {histogram.upper:,}: {histogram.overflow:,} games "
         f"({overflow_rate:.3f}%)",
         transform=axis.transAxes,
@@ -233,14 +247,13 @@ def render_histogram(
     return rate
 
 
-def generate_oracle_artifacts(
+def _generate_oracle_artifacts(
     output_dir: Path,
     *,
     games: int = 100_000,
     rounds: int = 10,
     seed_start: int = 0,
-) -> tuple[Path, Path, Path, float]:
-    """Simulate independent games and write the auditable histogram artifacts."""
+) -> _OracleArtifactGeneration:
     output_dir.mkdir(parents=True, exist_ok=True)
     scores = simulate_oracle_scores(
         games=games,
@@ -261,8 +274,32 @@ def generate_oracle_artifacts(
         svg_path,
         png_path,
         rounds=rounds,
+        seed_start=seed_start,
     )
-    return csv_path, png_path, svg_path, rate
+    return _OracleArtifactGeneration(
+        paths=(csv_path, png_path, svg_path),
+        scores=scores,
+        histogram=histogram,
+        rate=rate,
+    )
+
+
+def generate_oracle_artifacts(
+    output_dir: Path,
+    *,
+    games: int = 100_000,
+    rounds: int = 10,
+    seed_start: int = 0,
+) -> tuple[Path, Path, Path, float]:
+    """Simulate independent games and write the auditable histogram artifacts."""
+    generation = _generate_oracle_artifacts(
+        output_dir,
+        games=games,
+        rounds=rounds,
+        seed_start=seed_start,
+    )
+    csv_path, png_path, svg_path = generation.paths
+    return csv_path, png_path, svg_path, generation.rate
 
 
 def _positive_integer(value: str) -> int:
@@ -272,36 +309,34 @@ def _positive_integer(value: str) -> int:
     return parsed
 
 
+def _nonnegative_integer(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be a nonnegative integer")
+    return parsed
+
+
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate the oracle-optimal Bank It score distribution."
     )
     parser.add_argument("--games", type=_positive_integer, default=100_000)
     parser.add_argument("--rounds", type=_positive_integer, default=10)
-    parser.add_argument("--seed-start", type=int, default=0)
+    parser.add_argument("--seed-start", type=_nonnegative_integer, default=0)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     return parser.parse_args(argv)
 
 
 def main() -> None:
     args = _parse_args()
-    scores = simulate_oracle_scores(
+    generation = _generate_oracle_artifacts(
+        args.output_dir,
         games=args.games,
         rounds=args.rounds,
         seed_start=args.seed_start,
     )
-    histogram = build_histogram(scores)
-    csv_path = args.output_dir / "oracle-score-distribution.csv"
-    png_path = args.output_dir / "oracle-score-distribution.png"
-    svg_path = args.output_dir / "oracle-score-distribution.svg"
-    write_histogram_csv(histogram, csv_path, total=len(scores))
-    rate = render_histogram(
-        scores,
-        histogram,
-        svg_path,
-        png_path,
-        rounds=args.rounds,
-    )
+    scores = generation.scores
+    histogram = generation.histogram
 
     print(f"Games: {len(scores):,} independent seeds")
     print(f"Rounds per game: {args.rounds}")
@@ -310,8 +345,8 @@ def main() -> None:
     print(f"Median score: {statistics.median(scores):,.2f}")
     print(f"Visible maximum: {histogram.upper:,}")
     print(f"Overflow: {histogram.overflow:,}")
-    print(f"P(score ≥ 1,000): {rate:.2f}%")
-    for path in (csv_path, png_path, svg_path):
+    print(f"P(score ≥ 1,000): {generation.rate:.2f}%")
+    for path in generation.paths:
         print(f"Wrote: {path}")
 
 
