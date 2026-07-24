@@ -129,6 +129,44 @@ def build_histogram(scores: tuple[int, ...]) -> Histogram:
     return Histogram(width, upper, edges, tuple(counts), overflow)
 
 
+def _nice_width(raw: float) -> int:
+    """Round a bucket width up to the next 1/2/5 × 10ⁿ step."""
+    exponent = math.floor(math.log10(max(raw, 1)))
+    magnitude = 10**exponent
+    for step in (1, 2, 5, 10):
+        if raw <= step * magnitude:
+            return int(step * magnitude)
+    return int(10 * magnitude)
+
+
+def build_linear_histogram(
+    scores: tuple[int, ...],
+    *,
+    cutoff: float = 0.99,
+    buckets: int = 40,
+) -> Histogram:
+    """Bucket the body of the distribution, clipping the tail above `cutoff`."""
+    if not scores:
+        raise ValueError("scores must not be empty")
+    if not 0 < cutoff < 1:
+        raise ValueError("cutoff must be between 0 and 1")
+    if buckets <= 0:
+        raise ValueError("buckets must be positive")
+
+    ordered = tuple(sorted(scores))
+    width = _nice_width(_percentile(ordered, cutoff) / buckets)
+    upper = max(width, math.ceil(_percentile(ordered, cutoff) / width) * width)
+    edges = tuple(range(0, upper + width, width))
+    counts = [0] * (len(edges) - 1)
+    overflow = 0
+    for score in scores:
+        if score >= upper:
+            overflow += 1
+        else:
+            counts[score // width] += 1
+    return Histogram(width, upper, edges, tuple(counts), overflow)
+
+
 def build_percentiles(scores: tuple[int, ...]) -> tuple[PercentilePoint, ...]:
     if not scores:
         raise ValueError("scores must not be empty")
@@ -274,6 +312,117 @@ def render_histogram(
     _save_figure(figure, svg_path, png_path)
     pyplot.close(figure)
     return rate
+
+
+def render_linear_histogram(
+    scores: tuple[int, ...],
+    histogram: Histogram,
+    svg_path: Path,
+    png_path: Path,
+    *,
+    cutoff: float = 0.99,
+    rounds: int = 1,
+    seed_start: int = 0,
+) -> float:
+    """Render the distribution body on a linear x-axis and return the median."""
+    total = len(scores)
+    median = statistics.median(scores)
+    percentages = [count / total * 100 for count in histogram.counts]
+    centers = [
+        (start + end) / 2
+        for start, end in zip(histogram.edges, histogram.edges[1:])
+    ]
+
+    pyplot = _pyplot()
+    figure, axis = pyplot.subplots(figsize=(12, 6.5), constrained_layout=True)
+    figure.patch.set_facecolor(NIGHT)
+    _style_axes(axis)
+    axis.bar(
+        centers,
+        percentages,
+        width=histogram.width * 0.88,
+        color=GOLD,
+        label="Oracle-optimal score",
+    )
+    axis.axvline(
+        median,
+        color=CORAL,
+        linestyle="--",
+        linewidth=2,
+        label=f"Median ({median:,.0f})",
+    )
+    axis.set_title(
+        "What does a perfect-hindsight Bank It score look like?",
+        color=PAPER,
+        fontsize=20,
+        fontweight="bold",
+        loc="left",
+        pad=31,
+    )
+    axis.text(
+        0,
+        1.015,
+        f"{total:,} independent seeds "
+        f"({seed_start:,}–{seed_start + total - 1:,}) · "
+        f"{rounds} {'round' if rounds == 1 else 'rounds'} per game · "
+        "perfect-hindsight banking",
+        transform=axis.transAxes,
+        color=MUTED,
+        fontsize=11,
+    )
+    axis.set_xlabel("Oracle-optimal score", color=PAPER, labelpad=10)
+    axis.set_ylabel("Games (%)", color=PAPER, labelpad=10)
+    axis.set_xlim(0, histogram.upper)
+    legend = axis.legend(loc="upper right", frameon=False, fontsize=9)
+    for text in legend.get_texts():
+        text.set_color(PAPER)
+    overflow_rate = histogram.overflow / total * 100
+    axis.text(
+        0.5,
+        -0.14,
+        f"Linear x-axis · Bucket width: {histogram.width:,} points · "
+        f"Tail above P{cutoff * 100:g} (≥ {histogram.upper:,}) not shown: "
+        f"{histogram.overflow:,} games ({overflow_rate:.2f}%)",
+        transform=axis.transAxes,
+        horizontalalignment="center",
+        color=MUTED,
+        fontsize=9.5,
+    )
+    _save_figure(figure, svg_path, png_path)
+    pyplot.close(figure)
+    return median
+
+
+def generate_linear_artifacts(
+    output_dir: Path,
+    *,
+    games: int = 10_000,
+    rounds: int = 1,
+    seed_start: int = 0,
+    cutoff: float = 0.99,
+    stem: str = "oracle-score-distribution-linear",
+) -> tuple[Path, Path, Path]:
+    """Write the linear-axis distribution CSV, PNG, and SVG."""
+    scores = simulate_oracle_scores(
+        games=games,
+        rounds=rounds,
+        seed_start=seed_start,
+    )
+    histogram = build_linear_histogram(scores, cutoff=cutoff)
+    csv_path = output_dir / f"{stem}.csv"
+    png_path = output_dir / f"{stem}.png"
+    svg_path = output_dir / f"{stem}.svg"
+    write_histogram_csv(histogram, csv_path, total=len(scores))
+    render_linear_histogram(
+        scores,
+        histogram,
+        svg_path,
+        png_path,
+        cutoff=cutoff,
+        rounds=rounds,
+        seed_start=seed_start,
+    )
+    return csv_path, png_path, svg_path
 
 
 def render_percentiles(
@@ -511,6 +660,13 @@ def _nonnegative_integer(value: str) -> int:
     return parsed
 
 
+def _probability(value: str) -> float:
+    parsed = float(value)
+    if not 0 < parsed < 1:
+        raise argparse.ArgumentTypeError("must be between 0 and 1 exclusive")
+    return parsed
+
+
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate the oracle-optimal Bank It score distribution."
@@ -524,6 +680,13 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Generate matching ten-round and one-round artifact sets.",
     )
+    parser.add_argument(
+        "--linear",
+        action="store_true",
+        help="Render the distribution body on a linear x-axis, tail clipped.",
+    )
+    parser.add_argument("--cutoff", type=_probability, default=0.99)
+    parser.add_argument("--stem", default=None)
     args = parser.parse_args(argv)
     if args.games is None:
         args.games = 10_000 if args.comparison else 100_000
@@ -539,6 +702,19 @@ def main() -> None:
             seed_start=args.seed_start,
         )
         for path in paths:
+            print(f"Wrote: {path}")
+        return
+
+    if args.linear:
+        stem = args.stem or f"oracle-score-distribution-{args.rounds}-round-linear"
+        for path in generate_linear_artifacts(
+            args.output_dir,
+            games=args.games,
+            rounds=args.rounds,
+            seed_start=args.seed_start,
+            cutoff=args.cutoff,
+            stem=stem,
+        ):
             print(f"Wrote: {path}")
         return
 

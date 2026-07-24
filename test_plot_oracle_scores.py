@@ -10,10 +10,13 @@ from unittest.mock import patch
 from plot_oracle_scores import (
     _parse_args,
     build_histogram,
+    build_linear_histogram,
     build_percentiles,
+    generate_linear_artifacts,
     generate_oracle_artifacts,
     generate_round_comparison_artifacts,
     render_histogram,
+    render_linear_histogram,
     render_percentiles,
     simulate_oracle_game,
     simulate_oracle_scores,
@@ -232,6 +235,63 @@ class OracleArtifactTests(unittest.TestCase):
             self.assertIn(f"= {rate:.2f}%", svg_text)
             self.assertGreaterEqual(rate, 0.0)
             self.assertLessEqual(rate, 100.0)
+
+
+class OracleLinearHistogramTests(unittest.TestCase):
+    def test_buckets_below_cutoff_and_clips_the_tail(self):
+        scores = tuple(range(100)) + (1_000_000,)
+
+        histogram = build_linear_histogram(scores, cutoff=0.99)
+
+        self.assertEqual(sum(histogram.counts) + histogram.overflow, len(scores))
+        self.assertEqual(histogram.overflow, 1)
+        self.assertLess(histogram.upper, 1_000)
+        self.assertEqual(histogram.edges[0], 0)
+        self.assertEqual(histogram.edges[-1], histogram.upper)
+
+    def test_rejects_cutoffs_outside_the_open_unit_interval(self):
+        for cutoff in (0.0, 1.0, -0.5, 2.0):
+            with self.subTest(cutoff=cutoff):
+                with self.assertRaises(ValueError):
+                    build_linear_histogram((1, 2, 3), cutoff=cutoff)
+
+    def test_renderer_returns_the_median_and_discloses_linear_axis(self):
+        scores = (0, 100, 200, 300, 50_000)
+        histogram = build_linear_histogram(scores)
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            svg_path = output / "linear.svg"
+            median = render_linear_histogram(
+                scores,
+                histogram,
+                svg_path,
+                output / "linear.png",
+                rounds=1,
+            )
+            svg_text = svg_path.read_text(encoding="utf-8")
+
+        self.assertEqual(median, 200)
+        self.assertIn("Linear x-axis", svg_text)
+        self.assertIn("1 round per game", svg_text)
+
+    def test_generator_writes_three_linear_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path, png_path, svg_path = generate_linear_artifacts(
+                Path(directory),
+                games=50,
+                rounds=1,
+                seed_start=0,
+                stem="linear",
+            )
+
+            self.assertTrue(png_path.exists())
+            self.assertTrue(svg_path.exists())
+            with csv_path.open(encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertEqual(sum(int(row["count"]) for row in rows), 50)
+        self.assertEqual(rows[-1]["bucket_end"], "overflow")
 
 
 class OraclePercentileTests(unittest.TestCase):
