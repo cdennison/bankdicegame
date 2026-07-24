@@ -9,11 +9,15 @@ from unittest.mock import patch
 
 from plot_oracle_scores import (
     build_histogram,
+    build_percentiles,
     generate_oracle_artifacts,
+    generate_round_comparison_artifacts,
     render_histogram,
+    render_percentiles,
     simulate_oracle_game,
     simulate_oracle_scores,
     write_histogram_csv,
+    write_percentile_csv,
 )
 
 
@@ -169,6 +173,25 @@ class OracleArtifactTests(unittest.TestCase):
             self.assertGreater(png_path.stat().st_size, 0)
             self.assertIn("4 independent seeds", svg_text)
 
+    def test_renderer_uses_singular_round_copy(self):
+        scores = (100, 200, 300, 400)
+        histogram = build_histogram(scores)
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            svg_path = output / "distribution.svg"
+            render_histogram(
+                scores,
+                histogram,
+                svg_path,
+                output / "distribution.png",
+                rounds=1,
+            )
+            svg_text = svg_path.read_text(encoding="utf-8")
+
+        self.assertIn("1 round per game", svg_text)
+        self.assertNotIn("1 rounds per game", svg_text)
+
     def test_generator_writes_three_artifacts(self):
         with tempfile.TemporaryDirectory() as directory:
             paths = generate_oracle_artifacts(
@@ -193,6 +216,134 @@ class OracleArtifactTests(unittest.TestCase):
             self.assertIn(f"= {rate:.2f}%", svg_text)
             self.assertGreaterEqual(rate, 0.0)
             self.assertLessEqual(rate, 100.0)
+
+
+class OraclePercentileTests(unittest.TestCase):
+    def test_percentiles_are_p1_through_p99_with_linear_interpolation(self):
+        points = build_percentiles((0, 100, 200, 300, 400))
+
+        self.assertEqual(
+            tuple(point.percentile for point in points),
+            tuple(range(1, 100)),
+        )
+        by_percentile = {point.percentile: point.score for point in points}
+        self.assertEqual(by_percentile[25], 100.0)
+        self.assertEqual(by_percentile[50], 200.0)
+        self.assertEqual(by_percentile[75], 300.0)
+        self.assertEqual(by_percentile[99], 396.0)
+
+    def test_percentile_csv_has_exact_order_and_rows(self):
+        points = build_percentiles((100, 200, 300, 400))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "percentiles.csv"
+            write_percentile_csv(points, path)
+            with path.open(encoding="utf-8") as handle:
+                rows = list(csv.DictReader(handle))
+
+        self.assertEqual(list(rows[0]), ["percentile", "score"])
+        self.assertEqual(len(rows), 99)
+        self.assertEqual(rows[0]["percentile"], "1")
+        self.assertEqual(rows[-1]["percentile"], "99")
+
+    def test_percentile_renderer_discloses_log_scale_and_key_values(self):
+        points = build_percentiles(tuple(range(100, 10_100, 100)))
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            svg = output / "percentiles.svg"
+            render_percentiles(
+                points,
+                svg,
+                output / "percentiles.png",
+                games=100,
+                rounds=1,
+                seed_start=5,
+            )
+            text = svg.read_text(encoding="utf-8")
+
+        self.assertIn("P1–P99", text)
+        self.assertIn("log score axis", text)
+        self.assertIn("100 independent seeds (5–104)", text)
+        self.assertIn("1 round per game", text)
+        for percentile in (50, 90, 95, 99):
+            self.assertIn(f"P{percentile}", text)
+
+    def test_percentile_renderer_rejects_invalid_log_axis_inputs(self):
+        points = build_percentiles((100, 200, 300, 400))
+        invalid_points = build_percentiles((-100, 0, 100, 200))
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            svg = output / "percentiles.svg"
+            png = output / "percentiles.png"
+            with self.assertRaisesRegex(ValueError, "games must be positive"):
+                render_percentiles(
+                    points,
+                    svg,
+                    png,
+                    games=0,
+                    rounds=1,
+                    seed_start=0,
+                )
+            with self.assertRaisesRegex(ValueError, "rounds must be positive"):
+                render_percentiles(
+                    points,
+                    svg,
+                    png,
+                    games=4,
+                    rounds=0,
+                    seed_start=0,
+                )
+            with self.assertRaisesRegex(
+                ValueError,
+                "seed_start must be nonnegative",
+            ):
+                render_percentiles(
+                    points,
+                    svg,
+                    png,
+                    games=4,
+                    rounds=1,
+                    seed_start=-1,
+                )
+            with self.assertRaisesRegex(
+                ValueError,
+                "percentile scores must be positive",
+            ):
+                render_percentiles(
+                    invalid_points,
+                    svg,
+                    png,
+                    games=4,
+                    rounds=1,
+                    seed_start=0,
+                )
+
+    def test_comparison_generator_writes_matching_artifact_sets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            paths = generate_round_comparison_artifacts(
+                Path(directory),
+                games=100,
+                seed_start=0,
+            )
+            names = {path.name for path in paths}
+
+        self.assertEqual(len(paths), 12)
+        self.assertEqual(
+            names,
+            {
+                "oracle-score-distribution.csv",
+                "oracle-score-distribution.png",
+                "oracle-score-distribution.svg",
+                "oracle-score-percentiles-10-rounds.csv",
+                "oracle-score-percentiles-10-rounds.png",
+                "oracle-score-percentiles-10-rounds.svg",
+                "oracle-score-distribution-1-round.csv",
+                "oracle-score-distribution-1-round.png",
+                "oracle-score-distribution-1-round.svg",
+                "oracle-score-percentiles-1-round.csv",
+                "oracle-score-percentiles-1-round.png",
+                "oracle-score-percentiles-1-round.svg",
+            },
+        )
 
 
 if __name__ == "__main__":
