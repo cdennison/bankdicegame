@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from plot_oracle_scores import (
+    _parse_args,
     build_histogram,
     build_percentiles,
     generate_oracle_artifacts,
@@ -132,6 +133,12 @@ class OracleSimulationTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, 2)
         self.assertIn("must be a nonnegative integer", result.stderr)
+
+    def test_comparison_cli_defaults_to_ten_thousand_games(self):
+        args = _parse_args(["--comparison"])
+
+        self.assertTrue(args.comparison)
+        self.assertEqual(args.games, 10_000)
 
 
 class OracleArtifactTests(unittest.TestCase):

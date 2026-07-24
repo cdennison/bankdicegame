@@ -52,7 +52,7 @@ class _OracleArtifactGeneration:
 
 
 def simulate_oracle_game(rng: random.Random, *, rounds: int = 10) -> int:
-    """Return the ten-round score earned by banking just before every bust."""
+    """Return the score earned by banking just before every bust."""
     if rounds <= 0:
         raise ValueError("rounds must be positive")
 
@@ -515,7 +515,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate the oracle-optimal Bank It score distribution."
     )
-    parser.add_argument("--games", type=_positive_integer, default=100_000)
+    parser.add_argument("--games", type=_positive_integer, default=10_000)
     parser.add_argument("--rounds", type=_positive_integer, default=10)
     parser.add_argument("--seed-start", type=_nonnegative_integer, default=0)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
