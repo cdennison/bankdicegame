@@ -134,11 +134,20 @@ class OracleSimulationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("must be a nonnegative integer", result.stderr)
 
-    def test_comparison_cli_defaults_to_ten_thousand_games(self):
-        args = _parse_args(["--comparison"])
+    def test_cli_game_default_depends_on_comparison_mode(self):
+        ordinary = _parse_args([])
+        comparison = _parse_args(["--comparison"])
+        ordinary_override = _parse_args(["--games", "321"])
+        comparison_override = _parse_args(
+            ["--comparison", "--games", "654"],
+        )
 
-        self.assertTrue(args.comparison)
-        self.assertEqual(args.games, 10_000)
+        self.assertFalse(ordinary.comparison)
+        self.assertEqual(ordinary.games, 100_000)
+        self.assertTrue(comparison.comparison)
+        self.assertEqual(comparison.games, 10_000)
+        self.assertEqual(ordinary_override.games, 321)
+        self.assertEqual(comparison_override.games, 654)
 
 
 class OracleArtifactTests(unittest.TestCase):

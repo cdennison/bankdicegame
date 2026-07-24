@@ -515,7 +515,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate the oracle-optimal Bank It score distribution."
     )
-    parser.add_argument("--games", type=_positive_integer, default=10_000)
+    parser.add_argument("--games", type=_positive_integer)
     parser.add_argument("--rounds", type=_positive_integer, default=10)
     parser.add_argument("--seed-start", type=_nonnegative_integer, default=0)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
@@ -524,7 +524,10 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Generate matching ten-round and one-round artifact sets.",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.games is None:
+        args.games = 10_000 if args.comparison else 100_000
+    return args
 
 
 def main() -> None:
