@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="An interactive explanation of the Bank It State Delta strategy.">
-  <title>Bank It — The State Delta Formula</title>
+  <meta name="description" content="Bank It, explained: the oracle ceiling, three AI-written formulas, and the State Delta strategy that beats them.">
+  <title>Bank It — Learn the Strategy</title>
+  <script type="module" src="/src/lib/analytics-entry.ts"></script>
   <style>
     :root {
       --ink: #17233a;
@@ -43,6 +44,8 @@
 
     a { color: inherit; }
 
+    img { max-width: 100%; }
+
     .shell {
       width: min(1160px, calc(100% - 40px));
       margin: 0 auto;
@@ -62,6 +65,7 @@
       gap: 11px;
       font-weight: 800;
       letter-spacing: -0.02em;
+      text-decoration: none;
     }
 
     .die {
@@ -85,7 +89,7 @@
       grid-template-columns: 1.08fr 0.92fr;
       gap: 64px;
       align-items: center;
-      min-height: 620px;
+      min-height: 560px;
       padding: 64px 0 76px;
     }
 
@@ -104,9 +108,9 @@
       max-width: 760px;
       margin-bottom: 24px;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(50px, 7vw, 88px);
-      line-height: 0.96;
-      letter-spacing: -0.055em;
+      font-size: clamp(44px, 6vw, 76px);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
       font-weight: 700;
     }
 
@@ -144,44 +148,71 @@
     }
 
     .hero-card::after {
-      content: "7";
+      content: "?";
       position: absolute;
       right: -16px;
-      bottom: -120px;
+      bottom: -140px;
       color: rgba(255, 255, 255, 0.07);
       font: 700 360px/1 Georgia, serif;
       pointer-events: none;
     }
 
     .hero-card .label { color: #bbcffd; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    .hero-card h2 { margin: 8px 0 20px; font-size: 22px; }
+    .hero-card h2 { margin: 8px 0 16px; font-size: 22px; }
+    .hero-card p { position: relative; z-index: 1; color: #dbe6ff; font-size: 15px; }
 
-    .mini-formula {
+    .hero-steps {
       position: relative;
       z-index: 1;
-      padding: 22px;
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 15px;
-      background: rgba(255,255,255,.09);
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(18px, 2.2vw, 26px);
-      line-height: 1.55;
-    }
-
-    .hero-decision {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
-      position: relative;
-      z-index: 1;
       margin-top: 18px;
     }
 
-    .hero-decision div { padding: 12px; border-radius: 12px; background: rgba(7, 20, 52, .28); }
-    .hero-decision small { display: block; color: #bbcffd; }
-    .hero-decision strong { font-size: 21px; }
+    .hero-steps div {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(7, 20, 52, .28);
+      font-size: 14px;
+    }
+
+    .hero-steps b { color: #bbcffd; font-family: Georgia, serif; font-size: 18px; }
 
     section { padding: 82px 0; }
+    section.subsection { padding: 44px 0 0; }
+    section.subsection + section.subsection { border-top: 1px solid var(--line); margin-top: 44px; }
+
+    .section-super {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 6px;
+    }
+
+    .section-super .num {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      background: var(--blue);
+      color: white;
+      font-family: Georgia, serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .section-super .tag {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
 
     .section-head {
       display: grid;
@@ -194,12 +225,104 @@
     .section-head h2 {
       margin-bottom: 0;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: clamp(35px, 5vw, 56px);
+      font-size: clamp(32px, 4.6vw, 50px);
       line-height: 1.04;
       letter-spacing: -0.035em;
     }
 
     .section-head > p { margin-bottom: 4px; color: var(--muted); }
+
+    .hook {
+      max-width: 780px;
+      margin-bottom: 30px;
+      padding: 18px 22px;
+      border-left: 4px solid var(--blue);
+      border-radius: 0 12px 12px 0;
+      background: #eef3ff;
+      color: #1c3a80;
+      font-size: 17px;
+      font-weight: 650;
+    }
+
+    /* AI prompt disclosure */
+    details.ai-prompt {
+      margin: 22px 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--white);
+      overflow: hidden;
+    }
+
+    details.ai-prompt summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px;
+      cursor: pointer;
+      list-style: none;
+      color: var(--blue-dark);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      background: #f2f5ff;
+    }
+
+    details.ai-prompt summary::-webkit-details-marker { display: none; }
+
+    details.ai-prompt summary::before {
+      content: "▸";
+      display: inline-block;
+      color: var(--blue);
+      transition: transform .15s ease;
+    }
+
+    details.ai-prompt[open] summary::before { transform: rotate(90deg); }
+
+    details.ai-prompt summary .chip {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: var(--blue);
+      color: white;
+      font-size: 11px;
+    }
+
+    details.ai-prompt summary .hint {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    details.ai-prompt .prompt-body {
+      padding: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    details.ai-prompt pre {
+      margin: 0;
+      padding: 16px;
+      overflow-x: auto;
+      border-radius: 10px;
+      background: #101a33;
+      color: #cfe0ff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    details.ai-prompt .placeholder-note {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-style: italic;
+    }
 
     .formula-panel {
       padding: clamp(24px, 5vw, 52px);
@@ -361,28 +484,150 @@
       background: var(--white);
     }
 
-    table { width: 100%; border-collapse: collapse; min-width: 650px; }
+    table { width: 100%; border-collapse: collapse; min-width: 500px; }
     th, td { padding: 17px 20px; border-bottom: 1px solid var(--line); text-align: right; }
     th:first-child, td:first-child { text-align: left; }
     th { color: var(--muted); background: #f5f7fb; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
     tr:last-child td { border-bottom: 0; }
     tr.highlight td { color: var(--blue-dark); background: #f0f4ff; font-weight: 800; }
 
+    .chart-panel {
+      padding: clamp(18px, 3vw, 30px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      box-shadow: var(--shadow);
+    }
+
+    .chart-panel img { display: block; width: 100%; border-radius: 10px; }
+    .chart-panel figcaption { margin-top: 14px; color: var(--muted); font-size: 13px; }
+
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .stat-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 22px 0 0;
+    }
+
+    .stat-chip {
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: #f4f7fc;
+      font-size: 13px;
+    }
+
+    .stat-chip b { display: block; color: var(--blue-dark); font-family: Georgia, serif; font-size: 20px; }
+
+    .ai-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .ai-card {
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+      box-shadow: 0 9px 26px rgba(31, 54, 92, 0.06);
+    }
+
+    .ai-card .model-tag {
+      align-self: flex-start;
+      margin-bottom: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .ai-card.gpt35 .model-tag { color: #7a5300; background: #fff0cf; }
+    .ai-card.gpt4o .model-tag { color: var(--blue-dark); background: #e9efff; }
+    .ai-card.gpt5 .model-tag { color: var(--green); background: var(--green-soft); }
+
+    .ai-card h3 { margin-bottom: 8px; font: 700 23px/1.15 Georgia, serif; }
+    .ai-card .formula-mini {
+      margin: 10px 0 14px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #f4f7fc;
+      color: #183477;
+      font-family: Georgia, serif;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .ai-card p { color: var(--muted); font-size: 14px; }
+
+    .ai-card .rank-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .ai-card .rank-row b { color: var(--blue-dark); font-family: Georgia, serif; font-size: 22px; }
+
+    .method-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+
+    .method-card {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--white);
+    }
+
+    .method-card .icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 14px;
+      border-radius: 12px;
+      background: var(--blue);
+      color: white;
+      font-size: 20px;
+    }
+
+    .method-card h3 { margin-bottom: 8px; font: 700 22px/1.1 Georgia, serif; }
+    .method-card p { color: var(--muted); font-size: 14px; }
+    .method-card .q { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: #f4f7fc; color: #45536a; font-size: 13px; font-style: italic; }
+
     footer { padding: 34px 0 50px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 
     @media (max-width: 850px) {
       nav { display: none; }
-      .hero, .section-head, .calculator-wrap { grid-template-columns: 1fr; }
+      .hero, .section-head, .calculator-wrap, .chart-row, .method-cards { grid-template-columns: 1fr; }
       .hero { gap: 40px; min-height: auto; padding-top: 46px; }
-      .legend-grid, .games { grid-template-columns: repeat(2, 1fr); }
+      .legend-grid, .games, .ai-cards { grid-template-columns: repeat(2, 1fr); }
       .section-head { gap: 14px; }
     }
 
     @media (max-width: 580px) {
       .shell { width: min(100% - 24px, 1160px); }
       section { padding: 58px 0; }
-      .legend-grid, .games { grid-template-columns: 1fr; }
-      .hero-decision { grid-template-columns: 1fr; }
+      .legend-grid, .games, .ai-cards { grid-template-columns: 1fr; }
+      .hero-steps { grid-template-columns: 1fr; }
       .formula-panel, .controls, .result-card { padding: 20px; }
       .formula-line { text-align: left; }
     }
@@ -398,51 +643,174 @@
 </head>
 <body>
   <header class="shell topbar">
-    <div class="brand"><span class="die" aria-hidden="true">⚄</span> Bank It Decision Atlas</div>
+    <a class="brand" href="/" aria-label="Bank It home"><span class="die" aria-hidden="true">⚄</span> Bank It Decision Atlas</a>
     <nav aria-label="Page sections">
-      <a href="#formula">Formula</a>
-      <a href="#calculator">Calculator</a>
-      <a href="#games">Sample games</a>
-      <a href="#results">Results</a>
+      <a href="#observation">1. Observation</a>
+      <a href="#ai-solutions">2. AI solutions</a>
+      <a href="#best-solution">3. Best solution</a>
+      <a href="/rules/">Rules</a>
+      <a href="/">← Home</a>
     </nav>
   </header>
 
   <main>
     <div class="shell hero">
       <div class="hero-copy">
-        <p class="eyebrow">The State Delta strategy</p>
-        <h1>Know exactly when to bank.</h1>
-        <p>One formula turns your lead, the round, and the number of opponents into a single banking target. Protect a lead. Push a deficit. Never settle for a score that cannot win.</p>
+        <p class="eyebrow">How we figured out the smartest way to play</p>
+        <h1>When should you bank the pot?</h1>
+        <p>Every round the pot grows, and every round a 7 can wipe it out. This page walks through how good you <em>could</em> be, what three different AIs guessed, and the formula that actually wins — all backed by real simulated games, not vibes.</p>
         <div class="rule-strip" aria-label="Core strategy rules">
           <span>Leading starts at 150</span>
           <span>Tied starts at 200</span>
           <span>Trailing starts at 300</span>
         </div>
       </div>
-      <aside class="hero-card" aria-label="Formula summary">
-        <span class="label">The entire strategy</span>
-        <h2>The Bank Threshold Equation</h2>
-        <div class="mini-formula">
-          T₀ = 225 − 75σ − 25·𝟙[D=0]<br>
-          − ((3−σ)/8) · (D/R) · √((N−1)/3)
-        </div>
-        <div class="hero-decision">
-          <div><small>Ahead</small><strong>↓ risk</strong></div>
-          <div><small>Tied</small><strong>200</strong></div>
-          <div><small>Behind</small><strong>↑ upside</strong></div>
+      <aside class="hero-card" aria-label="Page roadmap">
+        <span class="label">Three questions, in order</span>
+        <h2>The roadmap</h2>
+        <p>Each section answers one question, in order, using data from real simulated games.</p>
+        <div class="hero-steps">
+          <div><b>1</b> How good can a player possibly get, and does a simple rule get close?</div>
+          <div><b>2</b> What did three different AIs guess, and who guessed best?</div>
+          <div><b>3</b> What actually wins the most, and how do we know?</div>
         </div>
       </aside>
     </div>
 
-    <section id="formula">
+    <!-- ============================================================ -->
+    <!-- SECTION 1: BASIC OBSERVATION                                  -->
+    <!-- ============================================================ -->
+    <section id="observation">
       <div class="shell">
+        <div class="section-super"><span class="num">1</span><span class="tag">Basic observation</span></div>
         <div class="section-head">
-          <div>
-            <p class="eyebrow">One equation, every game state</p>
-            <h2>The formula</h2>
-          </div>
-          <p>The equation first chooses a strategic posture—protect, hold, or chase—then changes its intensity using the size of the score gap, time remaining, and table pressure.</p>
+          <div><h2>How good can you get — and how close does a dumb rule come?</h2></div>
+          <p>Before judging any strategy, you need a ceiling to measure against and a floor to beat.</p>
         </div>
+
+        <!-- 1.a Oracle chart -->
+        <section id="oracle" class="subsection">
+          <p class="eyebrow">1.a — The ceiling</p>
+          <h3 style="font: 700 clamp(24px, 3vw, 32px)/1.15 Georgia, serif; margin-bottom: 14px;">Meet the oracle: a player who can see the future</h3>
+          <div class="hook">What if you knew every dice roll before it happened? That's the oracle — and even it can't win every game.</div>
+          <p style="max-width: 760px; color: var(--muted); margin-bottom: 22px;">The oracle is a cheat: it's told the exact sequence of rolls in advance and always banks at the single best moment in the round. No real strategy can ever beat it — it's the mathematical ceiling. But look at the spread below: even with perfect foresight, scores swing wildly, because the doubles-double-the-pot rule occasionally hands out a jackpot round. That huge tail is the whole reason this game is interesting.</p>
+          <details class="ai-prompt">
+            <summary><span class="chip">AI</span> AI Prompt used for this section <span class="hint">click to expand</span></summary>
+            <div class="prompt-body">
+              <pre>[placeholder] "Write a Python script that simulates the Bank It oracle:
+for a single round, try every possible banking moment against the actual
+roll sequence and keep the best score. Plot the resulting score
+distribution across N games."</pre>
+              <p class="placeholder-note">Placeholder — real prompt to be supplied.</p>
+            </div>
+          </details>
+          <figure class="chart-panel" style="margin-top: 22px;">
+            <img src="../docs/design/artifacts/learn-plots/oracle-score-distribution-1-round-linear-p95.svg" alt="Histogram of oracle scores for one round, showing a wide distribution with a long right tail from doubled pots.">
+            <figcaption>Oracle score distribution, one round, 10,000 games (bottom 95% shown for readability). Source: <code>plot_oracle_scores.py --linear --rounds 1 --games 10000 --cutoff 0.95</code>.</figcaption>
+          </figure>
+        </section>
+
+        <!-- 1.b Threshold vs score -->
+        <section id="threshold" class="subsection">
+          <p class="eyebrow">1.b — The floor</p>
+          <h3 style="font: 700 clamp(24px, 3vw, 32px)/1.15 Georgia, serif; margin-bottom: 14px;">Just pick one number and always bank there</h3>
+          <div class="hook">Pick a target, any target. There's a sweet spot — and it's not where you'd guess.</div>
+          <p style="max-width: 760px; color: var(--muted); margin-bottom: 22px;">The simplest strategy anyone could invent: choose a threshold — say, 150 — and bank the instant the pot reaches it, no matter what else is happening. Sweep that threshold from small to large and plot the average score you end up with. Too low, and you're leaving points on the table every round. Too high, and a 7 crashes you before you ever cash in. The curve bends — there's a best answer, and it already gets a player most of the way to good play.</p>
+          <details class="ai-prompt">
+            <summary><span class="chip">AI</span> AI Prompt used for this section <span class="hint">click to expand</span></summary>
+            <div class="prompt-body">
+              <pre>[placeholder] "Write a Python script that sweeps a fixed banking
+threshold from 25 to 400, plays thousands of solo games at each
+threshold, and plots average/median score vs. threshold value."</pre>
+              <p class="placeholder-note">Placeholder — real prompt to be supplied.</p>
+            </div>
+          </details>
+          <figure class="chart-panel" style="margin-top: 22px;">
+            <img src="../docs/design/artifacts/learn-plots/solo-threshold-sweep-lines.svg" alt="Line chart of average and median score against fixed banking threshold, peaking in the middle range.">
+            <figcaption>Score vs. fixed threshold. Source: <code>plot_strategy_scores.py --threshold-sweep</code>, data in <code>docs/design/artifacts/fixed-threshold-sweep.csv</code>.</figcaption>
+          </figure>
+          <div class="stat-strip">
+            <div class="stat-chip"><b>One number</b>gets you most of the way there</div>
+            <div class="stat-chip"><b>Zero opponent awareness</b>is its ceiling</div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 2: THREE AI SOLUTIONS                                 -->
+    <!-- ============================================================ -->
+    <section id="ai-solutions">
+      <div class="shell">
+        <div class="section-super"><span class="num">2</span><span class="tag">Three AI solutions</span></div>
+        <div class="section-head">
+          <div><h2>We asked three AIs to solve it cold. Here's what they came up with.</h2></div>
+          <p>No simulator access, no iteration — just the rules and a request for a formula.</p>
+        </div>
+        <div class="hook">Same rules, same question, three very different answers. One of them barely thinks about the score gap at all.</div>
+        <details class="ai-prompt">
+          <summary><span class="chip">AI</span> AI Prompt used for this section <span class="hint">click to expand</span></summary>
+          <div class="prompt-body">
+            <pre>[placeholder] "Here are the full rules of Bank It. Derive a single
+formula for the optimal banking threshold as a function of the pot,
+score gap, rounds remaining, and number of players. Show your
+reasoning and the final decision rule."</pre>
+            <p class="placeholder-note">Placeholder — real prompt (given verbatim to GPT-3.5, GPT-4o, and GPT-5) to be supplied.</p>
+          </div>
+        </details>
+
+        <div class="ai-cards" style="margin-top: 26px;">
+          <article class="ai-card gpt35">
+            <span class="model-tag">GPT-3.5</span>
+            <h3>Pot over seven, plus panic</h3>
+            <div class="formula-mini">T = P/7 + 10·max(0,−D)·F + 5/R·(1−B/N)</div>
+            <p>Mostly ignores the score gap unless it's the final round (F=1) — then it panics and adds a big correction. Reacts to opponents banking, but only a little.</p>
+            <div class="rank-row"><span>Tournament rank</span><b>near bottom</b></div>
+          </article>
+          <article class="ai-card gpt4o">
+            <span class="model-tag">GPT-4o</span>
+            <h3>A steadier blend</h3>
+            <div class="formula-mini">Weighs pot, deficit, and rounds left more evenly</div>
+            <p>Balances the score gap against rounds remaining more consistently than GPT-3.5, but still misses some of the player-count pressure that matters at bigger tables.</p>
+            <div class="rank-row"><span>Tournament rank</span><b>near bottom</b></div>
+          </article>
+          <article class="ai-card gpt5">
+            <span class="model-tag">GPT-5</span>
+            <h3>Closest to the real answer</h3>
+            <div class="formula-mini">Adjusts for lead/tie/trail posture and table size</div>
+            <p>Reasons about protecting a lead vs. chasing a deficit, and factors in how many players are at the table — the two ingredients that matter most, per Section 3.</p>
+            <div class="rank-row"><span>Tournament rank</span><b>mid-pack (~4th–5th)</b></div>
+          </article>
+        </div>
+
+        <p style="max-width: 780px; color: var(--muted); margin-top: 26px;">The formulas are transcribed verbatim in <code>solutions/40.md</code>, <code>solutions/gpt35.md</code>, and <code>solutions/gpt5.md</code>. What separates the better ones isn't cleverness for its own sake — it's which inputs they actually use. Ignoring the score gap or the number of players costs real win rate, as the next section shows.</p>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SECTION 3: THE BEST SOLUTION                                  -->
+    <!-- ============================================================ -->
+    <section id="best-solution">
+      <div class="shell">
+        <div class="section-super"><span class="num">3</span><span class="tag">The best solution</span></div>
+        <div class="section-head">
+          <div><h2>State Delta: know exactly when to bank</h2></div>
+          <p>One formula turns your lead, the round, and the number of opponents into a single banking target.</p>
+        </div>
+        <div class="hook">Protect a lead. Push a deficit. Never settle for a score that can't win. One equation does all three.</div>
+        <details class="ai-prompt">
+          <summary><span class="chip">AI</span> AI Prompt used for this section <span class="hint">click to expand</span></summary>
+          <div class="prompt-body">
+            <pre>[placeholder] "Search over families of banking-threshold formulas
+(score-gap-aware, round-aware, player-count-aware) and find the one
+that maximizes win rate across balanced tournament and 1v1 matrix
+simulations against every other strategy."</pre>
+            <p class="placeholder-note">Placeholder — real prompt to be supplied.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="shell" style="margin-top: 34px;">
         <div class="formula-panel">
           <div class="formula-line">
             T<span class="sub">0</span> = 225 − 75σ − 25𝟙[D=0] − <span class="sup">3−σ</span>⁄<span class="sub">8</span> · <span class="sup">D</span>⁄<span class="sub">R</span> · √<span style="text-decoration:overline">(N−1)/3</span>
@@ -463,14 +831,12 @@
           </div>
         </div>
       </div>
-    </section>
 
-    <section id="calculator">
-      <div class="shell">
+      <div class="shell" style="margin-top: 62px;">
         <div class="section-head">
           <div>
             <p class="eyebrow">Try your game state</p>
-            <h2>Live decision calculator</h2>
+            <h2 style="font-size: clamp(28px, 4vw, 40px);">Live decision calculator</h2>
           </div>
           <p>Move the controls. The recommendation updates instantly using the same State Delta equation as the Python simulator.</p>
         </div>
@@ -504,14 +870,12 @@
           </div>
         </div>
       </div>
-    </section>
 
-    <section id="games">
-      <div class="shell">
+      <div class="shell" style="margin-top: 62px;">
         <div class="section-head">
           <div>
             <p class="eyebrow">From equation to table</p>
-            <h2>Three sample games</h2>
+            <h2 style="font-size: clamp(28px, 4vw, 40px);">Three sample games</h2>
           </div>
           <p>Each example follows the recommendation through actual rolls. Doubles after roll three double the pot; a seven would crash every player who has not banked.</p>
         </div>
@@ -563,17 +927,50 @@
           </article>
         </div>
       </div>
-    </section>
 
-    <section id="results">
-      <div class="shell">
+      <div class="shell" style="margin-top: 62px;">
         <div class="section-head">
           <div>
-            <p class="eyebrow">Simulation evidence</p>
-            <h2>How it performed</h2>
+            <p class="eyebrow">How do we know it's actually the best?</p>
+            <h2 style="font-size: clamp(28px, 4vw, 40px);">Two ways to test a strategy</h2>
           </div>
-          <p>Balanced benchmark win rates from the Python simulator. Each policy faced the same opponent combinations with 200 games per matchup.</p>
+          <p>A formula is just a guess until it's been thrown into thousands of simulated games against everything else.</p>
         </div>
+        <div class="method-cards">
+          <div class="method-card">
+            <div class="icon" aria-hidden="true">▦</div>
+            <h3>Tournament</h3>
+            <p>Sit State Delta at a table with three random opponents, thousands of times over, and count how often it comes out on top. One row per strategy, ranked by win rate.</p>
+            <div class="q">"Does it work in a messy, real, mixed game?"</div>
+            <details class="ai-prompt">
+              <summary><span class="chip">AI</span> AI Prompt used for this section <span class="hint">click to expand</span></summary>
+              <div class="prompt-body">
+                <pre>[placeholder] "Write a Python script that plays a real N-player Bank It
+tournament: for every combination of strategies from the field, play
+--repeats shuffled-seat replays and report each strategy's win %,
+outright win %, and average score, sorted by win rate."</pre>
+                <p class="placeholder-note">Placeholder — real prompt to be supplied.</p>
+              </div>
+            </details>
+          </div>
+          <div class="method-card">
+            <div class="icon" aria-hidden="true">⇄</div>
+            <h3>Matrix</h3>
+            <p>Put State Delta in a 1-on-1 duel against every other strategy, one at a time, thousands of games each. This isolates head-to-head dominance from any 3rd or 4th opponent's noise.</p>
+            <div class="q">"But does it beat the specific strategy I'm worried about?"</div>
+            <details class="ai-prompt">
+              <summary><span class="chip">AI</span> AI Prompt used for this section <span class="hint">click to expand</span></summary>
+              <div class="prompt-body">
+                <pre>[placeholder] "Write a Python script that plays every pairwise 2-player
+duel among the strategy field, --matrix-games times per pair, and
+builds a 20x20 win-rate matrix where cell [row][col] is the row
+strategy's win rate against the column strategy."</pre>
+                <p class="placeholder-note">Placeholder — real prompt to be supplied.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+        <p style="max-width: 780px; color: var(--muted); margin-bottom: 26px;">A strategy can win the tournament — a strong generalist in a crowd — while still losing a few individual matrix duels, or vice versa. They're different games, so they aren't guaranteed to agree.</p>
         <div class="benchmark">
           <table>
             <thead><tr><th>Policy</th><th>2 players</th><th>4 players</th><th>6 players</th></tr></thead>
@@ -584,6 +981,78 @@
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div class="shell" style="margin-top: 62px;">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">All twenty strategies, head to head</p>
+            <h2 style="font-size: clamp(28px, 4vw, 40px);">The full matrix</h2>
+          </div>
+          <p>Every strategy played against every other, one on one, thousands of games per pair.</p>
+        </div>
+        <p style="max-width: 780px; color: var(--muted); margin-bottom: 22px;">Each cell is the row strategy's win rate against the column strategy — read across a row to see how that strategy fares against the whole field. Blue means the row strategy dominates that matchup, orange means the column strategy does, and the pale diagonal (0.50) is a strategy playing itself. State Delta and Adaptive 150/200/300 stand out as the only rows that stay blue almost everywhere, including against each other's neighbors — the same generalist strength that wins them the tournament also holds up duel by duel.</p>
+        <div class="chart-panel" style="overflow-x: auto;">
+          <table id="matrixGrid" style="border-collapse: collapse; font-size: 11px; white-space: nowrap; width: max-content;"></table>
+          <figcaption>Win rate matrix, 20 strategies × 20 strategies, 2-player duels.</figcaption>
+        </div>
+      </div>
+
+      <div class="shell" style="margin-top: 62px;">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Same top two, twice</p>
+            <h2 style="font-size: clamp(28px, 4vw, 40px);">It wins at a small table and a big one</h2>
+          </div>
+          <p>Run the full 20-strategy tournament twice — once with 4 players, once with 8 — and check whether the winner changes.</p>
+        </div>
+        <div class="hook">Nothing forces the strategy that wins a 4-player table to also win an 8-player table. This one does both.</div>
+        <div class="chart-row" style="margin-bottom: 22px;">
+          <div class="benchmark">
+            <table>
+              <thead><tr><th>4-player tournament</th><th>Win %</th></tr></thead>
+              <tbody>
+                <tr class="highlight"><td>1. State Delta</td><td>48.46%</td></tr>
+                <tr class="highlight"><td>2. Adaptive 150/200/300</td><td>48.21%</td></tr>
+                <tr><td>3. Pot 211 Counter</td><td>37.31%</td></tr>
+                <tr><td>4. Solution GPT-5</td><td>33.89%</td></tr>
+                <tr><td>5. Fixed Pot 200</td><td>33.69%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="benchmark">
+            <table>
+              <thead><tr><th>8-player tournament</th><th>Win %</th></tr></thead>
+              <tbody>
+                <tr class="highlight"><td>1. State Delta</td><td>32.92%</td></tr>
+                <tr class="highlight"><td>2. Adaptive 150/200/300</td><td>32.37%</td></tr>
+                <tr><td>3. Solution GPT-5</td><td>21.40%</td></tr>
+                <tr><td>4. Pot 211 Counter</td><td>19.58%</td></tr>
+                <tr><td>5. Five More</td><td>17.89%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p style="max-width: 780px; color: var(--muted); margin-bottom: 8px;">State Delta and Adaptive 150/200/300 — the two rules that track the score gap continuously and adjust for rounds and players remaining — take #1 and #2 at <em>both</em> table sizes. The win percentages themselves aren't comparable across columns (a "fair share" is 25% at 4 players but only 12.5% at 8) — what matters is that the same two names stay on top either way.</p>
+        <div class="stat-strip" style="margin-bottom: 30px;">
+          <div class="stat-chip"><b>Rank stays #1/#2</b>across two very different table sizes</div>
+          <div class="stat-chip"><b>Not guaranteed</b>a crowd winner can lose the crowd when it grows</div>
+        </div>
+
+        <h3 style="font: 700 clamp(22px, 2.8vw, 28px)/1.2 Georgia, serif; margin-bottom: 10px;">What moves in the middle — and why</h3>
+        <p style="max-width: 780px; color: var(--muted); margin-bottom: 18px;">The top and bottom of the field barely move between 4 and 8 players. The middle reshuffles, and each shuffle has a reason.</p>
+        <div class="benchmark" style="margin-bottom: 22px;">
+          <table>
+            <thead><tr><th>Strategy</th><th>4p rank</th><th>8p rank</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>Solution GPT-5</td><td>4th</td><td>3rd</td><td style="text-align:left; color:var(--muted); font-size:13px;">Its formula divides pressure by player count, so it holds up as the table grows.</td></tr>
+              <tr><td>Pot 211 Counter</td><td>3rd</td><td>4th</td><td style="text-align:left; color:var(--muted); font-size:13px;">Hand-tuned to beat one specific opponent (Fixed Pot 200) — with 7 rivals instead of 3, that one matchup matters less.</td></tr>
+              <tr><td>Three More</td><td>13th</td><td>8th</td><td style="text-align:left; color:var(--muted); font-size:13px;">The biggest mover. More players means more of them bust before you do.</td></tr>
+              <tr><td>Pot 150</td><td>7th</td><td>10th</td><td style="text-align:left; color:var(--muted); font-size:13px;">A static mid-threshold gets crowded out as more players compete for the same pot.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="max-width: 780px; color: var(--muted);">The bottom stays put too: Safe Exit and the two weaker AI formulas (Solution 4o, Solution GPT-3.5) hold the same order at both sizes — being too passive, or ignoring the score gap almost entirely, isn't a flaw that a bigger table fixes.</p>
       </div>
     </section>
   </main>
@@ -652,6 +1121,66 @@
 
     Object.values(controls).forEach(control => control.addEventListener('input', update));
     update();
+
+    (function renderMatrix() {
+      const csv = `strategy,Safe Exit,Pot 60,Pot 80,Pot 100,Pot 125,Pot 150,Fixed Pot 200,Pot 211 Counter,Adaptive 150/200/300,State Delta,One More,Three More,Five More,Double Hunter,Protect Lead,Catch Up,Adaptive Rank,Solution 4o,Solution GPT-3.5,Solution GPT-5
+Safe Exit,0.5000,0.1935,0.2261,0.2492,0.2627,0.2787,0.3120,0.3254,0.2642,0.2701,0.3238,0.3362,0.3859,0.2994,0.1680,0.2115,0.1448,0.5000,0.6244,0.2460
+Pot 60,0.8065,0.5000,0.3599,0.3637,0.3643,0.3682,0.3964,0.3861,0.3307,0.3126,0.6222,0.5014,0.4820,0.4234,0.5000,0.3115,0.2791,0.8042,0.9080,0.3274
+Pot 80,0.7739,0.6401,0.5000,0.3844,0.3744,0.3824,0.4164,0.4209,0.3329,0.3207,0.6229,0.5219,0.5020,0.4587,0.3615,0.2965,0.3663,0.7848,0.8650,0.3428
+Pot 100,0.7508,0.6363,0.6156,0.5000,0.3837,0.4104,0.4176,0.4254,0.3175,0.3206,0.6889,0.5765,0.5263,0.5185,0.6158,0.6101,0.6477,0.7649,0.8785,0.5004
+Pot 125,0.7373,0.6357,0.6256,0.6163,0.5000,0.3707,0.4231,0.4285,0.3055,0.2826,0.6771,0.5922,0.5759,0.5557,0.8240,0.5833,0.7406,0.7638,0.8612,0.5615
+Pot 150,0.7213,0.6318,0.6176,0.5896,0.6293,0.5000,0.4090,0.4213,0.2518,0.2595,0.6766,0.5943,0.5752,0.5627,0.7735,0.5968,0.6700,0.7408,0.8570,0.5668
+Fixed Pot 200,0.6880,0.6036,0.5836,0.5824,0.5769,0.5910,0.5000,0.3609,0.5000,0.5000,0.6542,0.5899,0.5515,0.5708,0.6523,0.6038,0.6058,0.7098,0.8213,0.6072
+Pot 211 Counter,0.6746,0.6139,0.5791,0.5746,0.5715,0.5787,0.6391,0.5000,0.5590,0.5676,0.6455,0.5890,0.5376,0.5850,0.6407,0.6015,0.5955,0.7105,0.8123,0.6183
+Adaptive 150/200/300,0.7358,0.6693,0.6671,0.6825,0.6945,0.7482,0.5000,0.4410,0.5000,0.5000,0.7126,0.6376,0.5596,0.6469,0.7397,0.6640,0.6767,0.7296,0.8013,0.6513
+State Delta,0.7299,0.6874,0.6793,0.6794,0.7174,0.7405,0.5000,0.4324,0.5000,0.5000,0.6963,0.6189,0.5535,0.6459,0.7610,0.6673,0.6636,0.7364,0.8004,0.6384
+One More,0.6762,0.3778,0.3771,0.3111,0.3229,0.3234,0.3458,0.3545,0.2874,0.3037,0.5000,0.3764,0.4155,0.3508,0.3067,0.2652,0.2851,0.6765,0.7914,0.2981
+Three More,0.6638,0.4986,0.4781,0.4235,0.4078,0.4057,0.4101,0.4110,0.3624,0.3811,0.6236,0.5000,0.4279,0.4548,0.4617,0.4214,0.4422,0.6787,0.8456,0.4165
+Five More,0.6141,0.5180,0.4980,0.4737,0.4241,0.4248,0.4485,0.4624,0.4404,0.4465,0.5845,0.5721,0.5000,0.4996,0.4910,0.4464,0.4659,0.6425,0.8070,0.4580
+Double Hunter,0.7006,0.5766,0.5413,0.4815,0.4443,0.4373,0.4292,0.4150,0.3531,0.3541,0.6492,0.5452,0.5004,0.5000,0.5619,0.4862,0.5197,0.7344,0.8650,0.4743
+Protect Lead,0.8320,0.5000,0.6385,0.3842,0.1760,0.2265,0.3477,0.3593,0.2603,0.2390,0.6933,0.5383,0.5090,0.4381,0.5000,0.4001,0.4438,0.8267,0.8505,0.3096
+Catch Up,0.7885,0.6885,0.7035,0.3899,0.4167,0.4032,0.3962,0.3985,0.3360,0.3327,0.7348,0.5786,0.5536,0.5138,0.5999,0.5000,0.5792,0.8208,0.9048,0.4666
+Adaptive Rank,0.8552,0.7209,0.6337,0.3523,0.2594,0.3300,0.3942,0.4045,0.3233,0.3364,0.7149,0.5578,0.5341,0.4803,0.5562,0.4208,0.5000,0.8562,0.8656,0.3615
+Solution 4o,0.5000,0.1958,0.2152,0.2351,0.2362,0.2592,0.2902,0.2895,0.2704,0.2636,0.3235,0.3213,0.3575,0.2656,0.1733,0.1792,0.1438,0.5000,0.5416,0.2274
+Solution GPT-3.5,0.3756,0.0920,0.1350,0.1215,0.1388,0.1430,0.1787,0.1877,0.1987,0.1996,0.2086,0.1544,0.1930,0.1350,0.1495,0.0952,0.1344,0.4584,0.5000,0.0991
+Solution GPT-5,0.7540,0.6726,0.6572,0.4996,0.4385,0.4332,0.3928,0.3817,0.3487,0.3616,0.7019,0.5835,0.5420,0.5257,0.6904,0.5334,0.6385,0.7726,0.9009,0.5000`;
+
+      const rows = csv.trim().split('\n').map(r => r.split(','));
+      const header = rows[0].slice(1);
+      const body = rows.slice(1);
+
+      const orange = [235, 104, 52];
+      const grayMid = [239, 243, 251];
+      const blue = [42, 120, 214];
+
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const mix = (c1, c2, t) => [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)];
+      function colorFor(v) {
+        const rgb = v <= 0.5 ? mix(orange, grayMid, v / 0.5) : mix(grayMid, blue, (v - 0.5) / 0.5);
+        return `rgb(${rgb[0].toFixed(0)},${rgb[1].toFixed(0)},${rgb[2].toFixed(0)})`;
+      }
+
+      let thead = '<tr><th style="position:sticky;left:0;background:#fff;"></th>';
+      header.forEach(h => {
+        thead += `<th style="height:120px;vertical-align:bottom;padding-bottom:6px;"><div style="writing-mode:vertical-rl;transform:rotate(180deg);color:var(--muted);font-weight:500;display:inline-block;max-height:110px;">${h}</div></th>`;
+      });
+      thead += '</tr>';
+
+      let tbody = '';
+      body.forEach((row, i) => {
+        tbody += `<tr><td style="position:sticky;left:0;background:#fff;text-align:right;padding:4px 10px 4px 4px;color:var(--ink);font-weight:500;">${row[0]}</td>`;
+        row.slice(1).forEach((val, j) => {
+          const v = parseFloat(val);
+          const isDiag = i === j;
+          const bg = isDiag ? '#f5f7fb' : colorFor(v);
+          const color = isDiag ? 'var(--muted)' : '#0b0b0b';
+          tbody += `<td title="${row[0]} vs ${header[j]}: ${v.toFixed(3)}" style="width:34px;height:26px;text-align:center;border:1px solid #fff;background:${bg};color:${color};">${v.toFixed(2)}</td>`;
+        });
+        tbody += '</tr>';
+      });
+
+      document.querySelector('#matrixGrid').innerHTML = thead + tbody;
+    })();
   </script>
 </body>
 </html>
