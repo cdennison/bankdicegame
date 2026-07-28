@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Match Point — Component & Interaction States</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --studio:#F1F2EA;
+    --ink:#14171A;
+    --pitch:#00C853;
+    --signal:#E0281E;
+    --amber:#FFB300;
+    --deep:#101820;
+    --paper-teal:#2EC4B6;
+    --paper-red:#FF6B5B;
+    --paper-purple:#8E7CF3;
+    --outline:2px solid var(--ink);
+    --shadow:4px 4px 0 0 var(--ink);
+    --shadow-press:2px 2px 0 0 var(--ink);
+    --shadow-lift:8px 8px 0 0 var(--ink);
+    --radius-card:10px;
+    --radius-btn:8px;
+    --radius-chip:4px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--studio);color:var(--ink);font-family:"Barlow",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{font-size:16px;line-height:1.55;padding:48px 56px 80px}
+  a{color:inherit;text-decoration:none}
+  .mocktag{position:absolute;top:8px;left:8px;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);opacity:.4;z-index:50}
+
+  .board-head{margin-bottom:48px;border-bottom:var(--outline);padding-bottom:24px}
+  .board-head h1{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:-.015em;font-size:64px;line-height:.92;margin-bottom:10px}
+  .board-head p{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500;opacity:.75}
+
+  .group{margin-bottom:56px}
+  .group-title{display:flex;align-items:baseline;gap:14px;margin-bottom:24px}
+  .group-title .num{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;background:var(--ink);color:var(--studio);padding:4px 10px;border-radius:var(--radius-chip)}
+  .group-title h2{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:-.01em;font-size:36px;line-height:1}
+  .group-title .desc{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;opacity:.7;margin-left:auto}
+
+  .frames{display:grid;gap:24px}
+  .frame{border:var(--outline);border-radius:var(--radius-card);background:var(--studio);overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .frame .frame-label{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:var(--ink);color:var(--studio);padding:8px 14px;display:flex;justify-content:space-between;align-items:center}
+  .frame .frame-label .state{background:var(--amber);color:var(--ink);padding:2px 8px;border-radius:3px;font-size:10px}
+  .frame .frame-label .state.dark{background:var(--deep);color:var(--studio)}
+  .frame .frame-label .state.red{background:var(--signal);color:#fff}
+  .frame .frame-body{padding:28px;flex:1;display:flex;flex-direction:column;justify-content:center}
+
+  /* shared component styles (mirror the page) */
+  .mono{font-family:"IBM Plex Mono",monospace;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+
+  /* nav */
+  .nav{background:var(--studio);border:2px solid var(--ink);border-radius:var(--radius-card);padding:14px 20px;display:flex;align-items:center;gap:16px;position:relative}
+  .die-mark{width:28px;height:28px;border:var(--outline);border-radius:6px;background:var(--studio);display:grid;place-items:center;transform:rotate(-6deg)}
+  .die-mark::after{content:"";width:8px;height:8px;background:var(--ink);border-radius:50%}
+  .brand-name{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.02em;font-size:22px}
+  .brand-tag{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;padding-left:12px;border-left:1px solid var(--ink)}
+  .nav-links{margin-left:auto;display:flex;align-items:center;gap:24px}
+  .nav-links a{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:500}
+  .nav-play{background:var(--ink);color:var(--studio);padding:10px 18px;border-radius:var(--radius-btn);font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;box-shadow:var(--shadow);border:var(--outline)}
+
+  /* mobile menu open */
+  .mobile-menu{position:relative;background:var(--studio);border:2px solid var(--ink);border-radius:var(--radius-card);overflow:hidden;min-height:380px;display:flex;flex-direction:column}
+  .mobile-menu .topbar{background:var(--studio);border-bottom:var(--outline);padding:14px 20px;display:flex;align-items:center;gap:12px}
+  .mobile-menu .topbar .x{margin-left:auto;width:36px;height:36px;border:var(--outline);border-radius:var(--radius-btn);display:grid;place-items:center;background:var(--studio);font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:20px}
+  .mobile-menu .sheet{flex:1;background:var(--studio);padding:24px 20px;display:flex;flex-direction:column;gap:14px;align-items:stretch}
+  .mobile-menu .sheet a{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;font-size:36px;letter-spacing:-.01em;padding:14px 4px;border-bottom:var(--outline);min-height:44px;display:flex;align-items:center}
+  .mobile-menu .sheet a .n{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;font-weight:700;opacity:.5;margin-right:14px}
+  .mobile-menu .sheet .play{margin-top:auto;background:var(--pitch);color:var(--ink);border:var(--outline);border-radius:var(--radius-btn);padding:18px 20px;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:14px;letter-spacing:.1em;text-transform:uppercase;box-shadow:var(--shadow);justify-content:center;min-height:56px;border-bottom:none}
+
+  /* choice cards */
+  .choice{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .choice-card{border:var(--outline);border-radius:var(--radius-card);padding:22px 16px;background:var(--studio);box-shadow:var(--shadow);text-align:center;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:10px;min-height:72px;justify-content:center;position:relative}
+  .choice-card .mark{width:16px;height:16px;border:2px solid var(--ink);border-radius:3px;display:inline-block;position:relative}
+  .choice-card.bank{background:var(--amber)}
+  .choice-card.selected{box-shadow:var(--shadow-press);transform:translate(2px,2px)}
+  .choice-card.selected .mark{background:var(--ink)}
+  .choice-card.selected .mark::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--studio);font-size:12px;font-family:"Barlow Condensed",sans-serif;font-weight:700}
+  .choice-card.bank.selected .mark::after{color:var(--amber)}
+  .choice-card .aria{position:absolute;top:6px;right:8px;font-family:"IBM Plex Mono",monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;opacity:.5}
+  .reveal{border:2px dashed var(--ink);border-radius:var(--radius-card);padding:18px 20px;background:var(--studio);font-size:14px;line-height:1.55;margin-top:14px}
+  .reveal .stamp{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--signal);margin-bottom:8px;display:inline-block}
+  .reset{margin-top:14px;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;border:2px solid var(--ink);background:var(--studio);padding:8px 14px;border-radius:var(--radius-btn);align-self:flex-start;box-shadow:2px 2px 0 0 var(--ink)}
+
+  /* primary button states */
+  .btn-primary{background:var(--pitch);color:var(--ink);border:var(--outline);border-radius:var(--radius-btn);padding:16px 24px;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:10px;align-self:flex-start}
+  .btn-primary.pressed{box-shadow:var(--shadow-press);transform:translate(2px,2px)}
+  .btn-primary.focus{outline:3px solid var(--ink);outline-offset:2px}
+  .btn-primary.disabled{background:var(--studio);color:var(--ink);opacity:.4;box-shadow:none;cursor:not-allowed;border-color:var(--ink)}
+  .btn-row{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+
+  /* scouting card */
+  .scout{border:var(--outline);border-radius:var(--radius-card);background:var(--studio);overflow:hidden;display:flex;flex-direction:column;width:280px}
+  .scout .idbar{height:12px;background:var(--paper-teal)}
+  .scout .body-pad{padding:20px;display:flex;flex-direction:column;gap:12px;flex:1}
+  .scout .name{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;font-size:36px;line-height:.9}
+  .scout .role{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.7}
+  .scout .field .k{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.7;display:block;margin-bottom:2px}
+  .scout .field .v{font-style:italic;font-size:14px;line-height:1.4}
+  .scout .redact{margin-top:auto;padding-top:12px;border-top:1px dashed var(--ink)}
+  .scout .redact-bar{height:11px;background:var(--ink);border-radius:2px;margin-bottom:5px}
+  .scout .redact-bar.short{width:60%}
+  .scout .redact-bar.med{width:80%}
+  .scout .stamp{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal);margin-top:8px;display:inline-block;border:2px solid var(--signal);padding:4px 6px;border-radius:3px;transform:rotate(-2deg)}
+  .scout.hover{box-shadow:var(--shadow-lift);transform:translate(-2px,-4px)}
+  .scout.hover .stamp{transform:rotate(-6deg) translateX(2px)}
+
+  /* fork panels */
+  .fork-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:var(--outline);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow)}
+  .panel{padding:32px 28px;display:flex;flex-direction:column;gap:14px;min-height:240px}
+  .panel.kick{background:var(--pitch);color:var(--ink);border-right:var(--outline)}
+  .panel.film{background:var(--deep);color:var(--studio)}
+  .panel .bug{align-self:flex-start;background:var(--ink);color:var(--studio);padding:7px 12px;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;border-radius:var(--radius-chip);display:flex}
+  .panel.film .bug{background:var(--amber);color:var(--ink)}
+  .panel h3{font-family:"Barlow Condensed",sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:-.01em;font-size:36px;line-height:.95}
+  .panel p{font-size:14px;line-height:1.55}
+  .panel .pcta{margin-top:auto;background:var(--ink);color:var(--studio);border:2px solid var(--ink);border-radius:var(--radius-btn);padding:14px 18px;font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;align-self:flex-start;box-shadow:var(--shadow);display:inline-flex;align-items:center;gap:10px}
+  .panel.film .pcta{background:var(--amber);color:var(--ink);border-color:var(--amber)}
+  .panel.kick.hover{background:#00B848}
+  .panel.film.hover{background:#0A141C}
+  .panel.hover .pcta .arrow{transform:translateX(4px)}
+
+  /* stat bar */
+  .bars{display:flex;flex-direction:column;gap:18px;width:100%}
+  .bar-row{display:grid;grid-template-columns:200px 1fr 90px;align-items:center;gap:18px}
+  .bar-row .lbl{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+  .bar-track{height:28px;background:rgba(241,242,234,.08);border:2px solid var(--studio);border-radius:4px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;background:var(--amber);border-right:2px solid var(--studio)}
+  .bar-row.state .bar-fill{background:var(--pitch)}
+  .bar-row .val{font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:28px;line-height:1;text-align:right}
+  .bar-row.empty .val{opacity:.3}
+  .stat-board{background:var(--deep);color:var(--studio);padding:28px;border-radius:var(--radius-card);border:var(--outline)}
+
+  /* grid layouts */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
+  .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:24px}
+  .grid-6{display:grid;grid-template-columns:repeat(6,1fr);gap:24px}
+
+  .annotation{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:500;opacity:.6;margin-top:14px;line-height:1.6}
+  .annotation b{color:var(--signal);font-weight:700;opacity:1}
+</style>
+</head>
+<body>
+<div class="mocktag">DESIGN MOCKUP — Match Point direction, static artifact</div>
+
+<div class="board-head">
+  <h1>Component & Interaction States</h1>
+  <p>Match Point · static state board · all frames are final states — no animation in capture</p>
+</div>
+
+<!-- 1. NAV -->
+<section class="group">
+  <div class="group-title">
+    <span class="num">01</span>
+    <h2>Score-bug navigation</h2>
+    <span class="desc">Default · Mobile menu open</span>
+  </div>
+  <div class="frames grid-2">
+    <div class="frame">
+      <div class="frame-label">Nav · <span class="state">Default</span></div>
+      <div class="frame-body">
+        <div class="nav">
+          <div class="die-mark" aria-hidden="true"></div>
+          <span class="brand-name">Bank It</span>
+          <span class="brand-tag">A push-your-luck dice game</span>
+          <nav class="nav-links">
+            <a href="#the-read">The Read</a>
+            <a href="#the-tells">Scouting Report</a>
+            <a href="#stat-sheet">Stat Sheet</a>
+            <a class="nav-play" href="/game/">Play</a>
+          </nav>
+        </div>
+        <p class="annotation">Sticky on scroll · ink outline + studio field · PLAY is the only filled target</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Nav · <span class="state red">Mobile menu open</span></div>
+      <div class="frame-body" style="padding:0">
+        <div class="mobile-menu">
+          <div class="topbar">
+            <div class="die-mark" aria-hidden="true"></div>
+            <span class="brand-name">Bank It</span>
+            <div class="x" aria-label="Close menu">×</div>
+          </div>
+          <div class="sheet">
+            <a href="#the-read"><span class="n">01</span>The Read</a>
+            <a href="#the-tells"><span class="n">02</span>Scouting Report</a>
+            <a href="#stat-sheet"><span class="n">03</span>Stat Sheet</a>
+            <a class="play" href="/game/">Play the match →</a>
+          </div>
+        </div>
+        <p class="annotation" style="padding:0 28px 24px">Full-screen sheet · labeled links · ≥44px targets · Escape closes</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. READ CHOICE -->
+<section class="group">
+  <div class="group-title">
+    <span class="num">02</span>
+    <h2>The Read · choice card</h2>
+    <span class="desc">Unselected · Bank selected · Push selected · Reveal (identical)</span>
+  </div>
+  <div class="frames grid-3">
+    <div class="frame">
+      <div class="frame-label">Choice · <span class="state">Unselected</span></div>
+      <div class="frame-body">
+        <div class="choice">
+          <button class="choice-card bank" aria-pressed="false"><span class="mark"></span>Bank 184<span class="aria">aria-pressed=false</span></button>
+          <button class="choice-card push" aria-pressed="false"><span class="mark"></span>Push your luck<span class="aria">aria-pressed=false</span></button>
+        </div>
+        <p class="annotation">Both cards neutral · hard 4px shadow · no reveal shown</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Choice · <span class="state">Bank selected</span></div>
+      <div class="frame-body">
+        <div class="choice">
+          <button class="choice-card bank selected" aria-pressed="true"><span class="mark"></span>Bank 184<span class="aria">aria-pressed=true</span></button>
+          <button class="choice-card push" aria-pressed="false"><span class="mark"></span>Push your luck<span class="aria">aria-pressed=false</span></button>
+        </div>
+        <div class="reveal">
+          <span class="stamp">Reveal · Either call</span>
+          There's no wrong answer on one roll. There's a wrong answer over ten thousand rolls. Reading that difference is the whole game — and it's a skill, not a gift.
+        </div>
+        <button class="reset">Reset call</button>
+        <p class="annotation">Shadow compressed 2px · mark filled · reveal appears politely</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Choice · <span class="state">Push selected</span></div>
+      <div class="frame-body">
+        <div class="choice">
+          <button class="choice-card bank" aria-pressed="false"><span class="mark"></span>Bank 184<span class="aria">aria-pressed=false</span></button>
+          <button class="choice-card push selected" aria-pressed="true"><span class="mark"></span>Push your luck<span class="aria">aria-pressed=true</span></button>
+        </div>
+        <div class="reveal">
+          <span class="stamp">Reveal · Either call</span>
+          There's no wrong answer on one roll. There's a wrong answer over ten thousand rolls. Reading that difference is the whole game — and it's a skill, not a gift.
+        </div>
+        <button class="reset">Reset call</button>
+        <p class="annotation">Reveal copy is identical · page never grades the visitor</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. PRIMARY BUTTON -->
+<section class="group">
+  <div class="group-title">
+    <span class="num">03</span>
+    <h2>Primary button</h2>
+    <span class="desc">Default · Pressed · Focus · Disabled</span>
+  </div>
+  <div class="frames grid-4">
+    <div class="frame">
+      <div class="frame-label">Button · <span class="state">Default</span></div>
+      <div class="frame-body">
+        <button class="btn-primary">Play the match →</button>
+        <p class="annotation">Pitch field · ink outline · hard 4px offset shadow</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Button · <span class="state">Pressed</span></div>
+      <div class="frame-body">
+        <button class="btn-primary pressed">Play the match →</button>
+        <p class="annotation">Shadow compresses 2px · translate 2px · 150ms</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Button · <span class="state dark">Focus</span></div>
+      <div class="frame-body">
+        <button class="btn-primary focus">Play the match →</button>
+        <p class="annotation">3px ink outline · 2px offset · visible on light + dark</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Button · <span class="state">Disabled</span></div>
+      <div class="frame-body">
+        <button class="btn-primary disabled" disabled>Play the match →</button>
+        <p class="annotation">Studio field · 40% ink · no shadow · not in default flow</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. SCOUTING CARD -->
+<section class="group">
+  <div class="group-title">
+    <span class="num">04</span>
+    <h2>Scouting card</h2>
+    <span class="desc">Default · Hover-lift</span>
+  </div>
+  <div class="frames grid-2">
+    <div class="frame">
+      <div class="frame-label">Scout · <span class="state">Default</span></div>
+      <div class="frame-body">
+        <div class="scout" style="align-self:center">
+          <div class="idbar" aria-hidden="true"></div>
+          <div class="body-pad">
+            <span class="role">Opponent 01 · Teal</span>
+            <h3 class="name">Mira</h3>
+            <div class="field"><span class="k">Personality</span><span class="v">Quiet confidence. Seems one move ahead.</span></div>
+            <div class="field"><span class="k">Observed Tendency</span><span class="v">Banks earlier when she's behind. Later when she can afford it.</span></div>
+            <div class="redact">
+              <div class="redact-bar med"></div>
+              <div class="redact-bar short"></div>
+              <span class="stamp">Full read: redacted — play a match to declassify</span>
+            </div>
+          </div>
+        </div>
+        <p class="annotation">Hard 4px shadow · redaction stamp at -2°</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Scout · <span class="state">Hover-lift</span></div>
+      <div class="frame-body">
+        <div class="scout hover" style="align-self:center">
+          <div class="idbar" aria-hidden="true"></div>
+          <div class="body-pad">
+            <span class="role">Opponent 01 · Teal</span>
+            <h3 class="name">Mira</h3>
+            <div class="field"><span class="k">Personality</span><span class="v">Quiet confidence. Seems one move ahead.</span></div>
+            <div class="field"><span class="k">Observed Tendency</span><span class="v">Banks earlier when she's behind. Later when she can afford it.</span></div>
+            <div class="redact">
+              <div class="redact-bar med"></div>
+              <div class="redact-bar short"></div>
+              <span class="stamp">Full read: redacted — play a match to declassify</span>
+            </div>
+          </div>
+        </div>
+        <p class="annotation">Shadow grows to 8px · card lifts -4px · stamp tilts to -6°</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. FORK PANELS -->
+<section class="group">
+  <div class="group-title">
+    <span class="num">05</span>
+    <h2>Fork panels</h2>
+    <span class="desc">Default · Hover (field deepens, arrow slides 4px)</span>
+  </div>
+  <div class="frames grid-2">
+    <div class="frame">
+      <div class="frame-label">Fork · <span class="state">Default</span></div>
+      <div class="frame-body">
+        <div class="fork-grid">
+          <div class="panel kick">
+            <span class="bug"><span style="display:inline-block;width:7px;height:7px;background:var(--signal);border-radius:50%;margin-right:7px"></span>Kickoff</span>
+            <h3>Play Bank It</h3>
+            <p>Take the table against Mira, Knox, and Vega.</p>
+            <a class="pcta" href="/game/">Play the match <span class="arrow">→</span></a>
+          </div>
+          <div class="panel film">
+            <span class="bug">Film Room</span>
+            <h3>Crack the Strategy</h3>
+            <p>Break down the read: probability, two reads, 200k games.</p>
+            <a class="pcta" href="/learn/">Enter the film room <span class="arrow">→</span></a>
+          </div>
+        </div>
+        <p class="annotation">Pitch + deep · 50/50 · equal weight · one CTA each</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Fork · <span class="state">Hover</span></div>
+      <div class="frame-body">
+        <div class="fork-grid">
+          <div class="panel kick hover">
+            <span class="bug"><span style="display:inline-block;width:7px;height:7px;background:var(--signal);border-radius:50%;margin-right:7px"></span>Kickoff</span>
+            <h3>Play Bank It</h3>
+            <p>Take the table against Mira, Knox, and Vega.</p>
+            <a class="pcta" href="/game/">Play the match <span class="arrow">→</span></a>
+          </div>
+          <div class="panel film hover">
+            <span class="bug">Film Room</span>
+            <h3>Crack the Strategy</h3>
+            <p>Break down the read: probability, two reads, 200k games.</p>
+            <a class="pcta" href="/learn/">Enter the film room <span class="arrow">→</span></a>
+          </div>
+        </div>
+        <p class="annotation">Pitch deepens to #00B848 · deep deepens to #0A141C · arrow slides +4px</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. STAT BAR -->
+<section class="group">
+  <div class="group-title">
+    <span class="num">06</span>
+    <h2>Stat bar</h2>
+    <span class="desc">Pre-fill (0%) · Filled</span>
+  </div>
+  <div class="frames grid-2">
+    <div class="frame">
+      <div class="frame-label">Stat bar · <span class="state">Pre-fill (0%)</span></div>
+      <div class="frame-body">
+        <div class="stat-board">
+          <div class="bars">
+            <div class="bar-row state empty">
+              <span class="lbl">State Delta</span>
+              <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+              <span class="val">0.00%</span>
+            </div>
+            <div class="bar-row gpt5 empty">
+              <span class="lbl">GPT-5 Strategy</span>
+              <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+              <span class="val">0.00%</span>
+            </div>
+            <div class="bar-row gpt4o empty">
+              <span class="lbl">GPT-4o Strategy</span>
+              <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+              <span class="val">0.00%</span>
+            </div>
+            <div class="bar-row gpt35 empty">
+              <span class="lbl">GPT-3.5 Strategy</span>
+              <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+              <span class="val">0.00%</span>
+            </div>
+          </div>
+        </div>
+        <p class="annotation">Empty tracks on --deep · text values present · count-up collapses to this then fills</p>
+      </div>
+    </div>
+    <div class="frame">
+      <div class="frame-label">Stat bar · <span class="state">Filled</span></div>
+      <div class="frame-body">
+        <div class="stat-board">
+          <div class="bars">
+            <div class="bar-row state">
+              <span class="lbl">State Delta</span>
+              <div class="bar-track"><div class="bar-fill" style="width:53.45%"></div></div>
+              <span class="val">53.45%</span>
+            </div>
+            <div class="bar-row gpt5">
+              <span class="lbl">GPT-5 Strategy</span>
+              <div class="bar-track"><div class="bar-fill" style="width:31.83%"></div></div>
+              <span class="val">31.83%</span>
+            </div>
+            <div class="bar-row gpt4o">
+              <span class="lbl">GPT-4o Strategy</span>
+              <div class="bar-track"><div class="bar-fill" style="width:12.88%"></div></div>
+              <span class="val">12.88%</span>
+            </div>
+            <div class="bar-row gpt35">
+              <span class="lbl">GPT-3.5 Strategy</span>
+              <div class="bar-track"><div class="bar-fill" style="width:1.84%"></div></div>
+              <span class="val">1.84%</span>
+            </div>
+          </div>
+        </div>
+        <p class="annotation">Final state · each bar its identity color · text value always present · role="img" alt</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
