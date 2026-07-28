@@ -86,7 +86,12 @@ export function GameApp() {
         <header className="game-header">
           <a className="icon-button" href="/" aria-label="Back to Bank It landing page"><Icon name="back" /></a>
           <div className="game-brand"><span className="mini-die" aria-hidden="true">5</span><span>BANK IT</span></div>
-          <span className="demo-badge">Local strategy game</span>
+          <div className="header-actions">
+            <a className="strategy-link" href="/learn/">
+              <Icon name="scan" /> <span>Crack the strategy</span>
+            </a>
+            <span className="demo-badge">Local strategy game</span>
+          </div>
         </header>
         <GameErrorBoundary onRestart={newGame}>{content}</GameErrorBoundary>
       </div>

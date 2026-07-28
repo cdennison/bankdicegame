@@ -1,4 +1,4 @@
-export type IconName = 'back' | 'plus' | 'trash' | 'die';
+export type IconName = 'back' | 'plus' | 'trash' | 'die' | 'scan';
 
 interface IconProps {
   readonly name: IconName;
@@ -21,6 +21,14 @@ export function Icon({ name, className }: IconProps) {
   }
   if (name === 'trash') {
     return <svg {...common}><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg>;
+  }
+  if (name === 'scan') {
+    return (
+      <svg {...common}>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.35-4.35" />
+      </svg>
+    );
   }
   return (
     <svg {...common}>

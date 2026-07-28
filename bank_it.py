@@ -4,11 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import itertools
 import math
 import random
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
 
@@ -181,6 +183,11 @@ def submitted_strategies() -> tuple[Strategy, ...]:
             lambda v: v.pot >= solution_gpt5_target(v),
         ),
     )
+
+
+def full_field() -> tuple[Strategy, ...]:
+    """The hand-designed field plus the AI-submitted formulas, for tournament/matrix mode."""
+    return strategies() + submitted_strategies()
 
 
 def strategies() -> tuple[Strategy, ...]:
@@ -620,12 +627,29 @@ def report_solution_comparison(field: Sequence[Strategy], args: argparse.Namespa
         )
 
 
+def write_matrix_csv(
+    field: Sequence[Strategy],
+    matrix: Sequence[Sequence[float]],
+    path: Path,
+) -> None:
+    """Write the full head-to-head matrix, one row-strategy win rate per column."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(("strategy", *(strategy.name for strategy in field)))
+        for row, strategy in enumerate(field):
+            writer.writerow(
+                (strategy.name, *(f"{matrix[row][col]:.4f}" for col in range(len(field))))
+            )
+
+
 def report_matrix(
     field: Sequence[Strategy], matrix: Sequence[Sequence[float]], args: argparse.Namespace
 ) -> None:
     labels = (
         "Safe", "P060", "P080", "P100", "P125", "P150", "F200", "P211", "A150", "Delta",
         "One+", "Three+", "Five+", "Double", "Lead", "Catch", "Adapt",
+        "S4o", "S35", "S5",
     )
     print("BANK IT HEAD-TO-HEAD MATRIX")
     print(
@@ -665,6 +689,28 @@ def report_matrix(
         print(f"  {rank}. {name:<18} {100 * rate:5.1f}%")
 
 
+def write_tournament_csv(
+    field: Sequence[Strategy], results: dict[str, Result], path: Path
+) -> None:
+    """Write one row per strategy: win %, outright win %, avg score, sorted by win rate."""
+    rows = []
+    for strategy in field:
+        result = results[strategy.name]
+        rows.append((result.win_share / result.appearances, strategy, result))
+    rows.sort(reverse=True, key=lambda row: row[0])
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(("rank", "strategy", "win_pct", "outright_pct", "avg_score"))
+        for rank, (win_rate, strategy, result) in enumerate(rows, 1):
+            outright = 100 * result.outright_wins / result.appearances
+            average = result.points / result.appearances
+            writer.writerow(
+                (rank, strategy.name, f"{100 * win_rate:.4f}", f"{outright:.4f}", f"{average:.4f}")
+            )
+
+
 def report(field: Sequence[Strategy], results: dict[str, Result], games: int, args: argparse.Namespace) -> None:
     rows = []
     for strategy in field:
@@ -696,6 +742,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=20260719, help="random seed")
     parser.add_argument(
         "--matrix", action="store_true", help="run a two-player strategy-vs-strategy matrix"
+    )
+    parser.add_argument(
+        "--csv-output",
+        type=Path,
+        default=None,
+        help="write tournament/matrix results to this CSV path instead of only printing",
     )
     parser.add_argument(
         "--matrix-games",
@@ -754,7 +806,7 @@ def parse_args() -> argparse.Namespace:
         help="games with all four formulas at one table (default: 200000)",
     )
     args = parser.parse_args()
-    count = len(strategies())
+    count = len(full_field())
     if not 2 <= args.players <= count:
         parser.error(f"--players must be between 2 and {count}")
     if (
@@ -773,19 +825,26 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    field = strategies()
     if args.compare_solutions:
-        report_solution_comparison(field, args)
+        report_solution_comparison(strategies(), args)
     elif args.policy_table:
-        report_policy_table(field, args)
+        report_policy_table(strategies(), args)
     elif args.adaptive_analysis:
-        report_adaptive_analysis(field, args)
+        report_adaptive_analysis(strategies(), args)
     elif args.matrix:
+        field = full_field()
         matrix = simulate_head_to_head(field, args.rounds, args.matrix_games, args.seed)
         report_matrix(field, matrix, args)
+        if args.csv_output:
+            write_matrix_csv(field, matrix, args.csv_output)
+            print(f"\nWrote: {args.csv_output}")
     else:
+        field = full_field()
         results, games = simulate(field, args.players, args.rounds, args.repeats, args.seed)
         report(field, results, games, args)
+        if args.csv_output:
+            write_tournament_csv(field, results, args.csv_output)
+            print(f"\nWrote: {args.csv_output}")
 
 
 if __name__ == "__main__":

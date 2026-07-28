@@ -39,6 +39,11 @@ svg { width: 1.35em; height: 1.35em; fill: none; stroke: currentColor; stroke-wi
 .game-brand { display: flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 15px; font-weight: 800; letter-spacing: -.03em; }
 .mini-die { display: grid; width: 29px; height: 29px; place-items: center; border: 2px solid var(--night); border-radius: 8px; color: var(--night); background: var(--yellow); box-shadow: 0 3px 0 #a57916; font-family: var(--mono); font-size: 10px; transform: rotate(-5deg); }
 .demo-badge { padding: 6px 8px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); font-family: var(--mono); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.strategy-link { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 2px solid var(--night); border-radius: 999px; color: var(--night); background: var(--amber); box-shadow: 0 3px 0 var(--amber-dark); font-family: var(--mono); font-size: 9px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; text-decoration: none; white-space: nowrap; transition: transform .14s ease, box-shadow .14s ease; }
+.strategy-link svg { width: 13px; height: 13px; }
+.strategy-link:hover { transform: translateY(1px); box-shadow: 0 2px 0 var(--amber-dark); }
+.strategy-link:active { transform: translateY(3px); box-shadow: 0 0 0 var(--amber-dark); }
 
 .screen { min-height: calc(100dvh - 64px); animation: screen-in .3s ease; }
 @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } }
@@ -248,7 +253,9 @@ h1, h2, h3 { font-family: var(--display); letter-spacing: -.035em; }
 }
 
 @media (max-width:420px) {
-  .demo-badge { max-width:76px; text-align:center; }
+  .demo-badge { display:none; }
+  .strategy-link span { display:none; }
+  .strategy-link { padding:9px; }
   .screen-bar { padding-top:28px; }
   .screen-bar h1 { font-size:35px; }
   .pot-zone { min-height:205px; }
