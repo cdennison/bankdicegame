@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 import { createGame, transition } from '../domain/reducer';
 import {
+  selectActiveHumanId,
   selectCurrentPlayer,
   selectDecisionLabels,
   selectLegalActions,
@@ -26,6 +27,7 @@ import {
   type PresentationMode,
   type PresentationStep,
 } from './aiTurnRunner';
+import { loadGameState, saveGameState, clearGameState } from './persistence';
 import { TIMING, type GameTiming } from './timing';
 
 interface EngineState {
@@ -45,6 +47,8 @@ const engineReducer = (current: EngineState, action: EngineAction): EngineState 
   const result = transition(current.game, action.command);
   return result.ok ? { game: result.state, events: result.events } : current;
 };
+
+const initialEngineState = (): EngineState => ({ game: loadGameState(), events: [] });
 
 export interface PresentationState {
   readonly mode: PresentationMode;
@@ -81,10 +85,12 @@ export interface GameController {
   readonly legalActions: LegalActions;
   readonly currentPlayer: PlayerDefinition | undefined;
   readonly decisionLabels: DecisionLabels | undefined;
+  readonly activeHumanId: PlayerId | undefined;
   start(config: GameConfig): void;
   roll(): void;
   advanceRound(): void;
   submitDecision(playerId: PlayerId, decision: Decision): void;
+  advanceDecisions(): void;
   restart(): void;
   reset(): void;
 }
@@ -100,7 +106,7 @@ export const useGameController = (
   options: GameControllerOptions = {},
 ): GameController => {
   const timing: GameTiming = { ...TIMING, ...options.timing };
-  const [engine, dispatchEngine] = useReducer(engineReducer, { game: null, events: [] });
+  const [engine, dispatchEngine] = useReducer(engineReducer, undefined, initialEngineState);
   const [presentation, dispatchPresentation] = useReducer(
     presentationReducer,
     initialPresentation,
@@ -128,6 +134,22 @@ export const useGameController = (
     });
   }, []);
 
+  const advanceDecisions = useCallback(() => {
+    const game = engine.game;
+    const snapshot = game?.decisionSnapshot;
+    if (!snapshot) return;
+    for (const playerId of snapshot.pendingPlayerIds) {
+      const isHuman = game!.config.players.find(({ id }) => id === playerId)?.controller.type === 'human';
+      if (isHuman && snapshot.decisions[playerId] === undefined) {
+        dispatchEngine({
+          type: 'COMMAND',
+          command: { type: 'SUBMIT_DECISION', playerId, decision: 'stay' },
+        });
+      }
+    }
+    dispatchEngine({ type: 'COMMAND', command: { type: 'RESOLVE_STRATEGY_DECISIONS' } });
+  }, [engine.game]);
+
   const restart = useCallback(() => {
     activeSequence.current?.abort();
     dispatchPresentation({ type: 'RESET' });
@@ -139,6 +161,11 @@ export const useGameController = (
     dispatchPresentation({ type: 'RESET' });
     dispatchEngine({ type: 'RESET' });
   }, []);
+
+  useEffect(() => {
+    if (engine.game) saveGameState(engine.game);
+    else clearGameState();
+  }, [engine.game]);
 
   useEffect(() => {
     const game = engine.game;
@@ -173,19 +200,22 @@ export const useGameController = (
   ]);
 
   const state = engine.game;
+  const activeHumanId = state ? selectActiveHumanId(state) : undefined;
   return {
     state,
     presentation,
     rankings: state ? selectRankings(state) : [],
     winners: state ? selectWinners(state) : [],
     legalActions: state
-      ? selectLegalActions(state)
+      ? selectLegalActions(state, activeHumanId)
       : { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
     currentPlayer: state ? selectCurrentPlayer(state) : undefined,
-    decisionLabels: state ? selectDecisionLabels(state) : undefined,
+    decisionLabels: state ? selectDecisionLabels(state, activeHumanId) : undefined,
+    activeHumanId,
     start,
     roll,
     advanceRound,
+    advanceDecisions,
     submitDecision,
     restart,
     reset,

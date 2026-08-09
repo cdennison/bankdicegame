@@ -18,6 +18,11 @@ npm run dev
 Open the printed local URL at `/game/` to play. The landing page is at `/`, and
 the strategy explainer is at `/learn/`.
 
+The setup screen supports up to four human players sharing one device
+(hot-seat play), filling any remaining seats with local AI strategies. With
+two or more humans, the match screen pauses on a "Pass the device to
+{name}" handoff between human turns so players don't act out of turn.
+
 Use these commands for local verification:
 
 ```bash

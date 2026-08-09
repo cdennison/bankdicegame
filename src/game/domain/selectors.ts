@@ -66,12 +66,31 @@ export const selectWinnerHeading = (winners: readonly RankedPlayer[]): string =>
 export const selectCurrentPlayer = (state: GameState): PlayerDefinition | undefined =>
   state.config.players.find(({ id }) => id === state.round.currentPlayerId);
 
-const defaultHumanId = (state: GameState): PlayerId | undefined =>
-  state.config.players.find(({ controller }) => controller.type === 'human')?.id;
+const isHuman = (state: GameState, playerId: PlayerId): boolean =>
+  state.config.players.find(({ id }) => id === playerId)?.controller.type === 'human';
+
+/**
+ * Resolves whichever human seat is on the clock right now — the human whose
+ * turn it is to roll, or (in hot-seat play with 2+ humans) the first pending
+ * human still owed a decision. Seats are handled one at a time even when the
+ * domain layer allows several pending players at once.
+ */
+export const selectActiveHumanId = (state: GameState): PlayerId | undefined => {
+  if (state.phase === 'awaiting-roll') {
+    return isHuman(state, state.round.currentPlayerId) ? state.round.currentPlayerId : undefined;
+  }
+  if (state.phase === 'awaiting-decisions' && state.decisionSnapshot) {
+    return state.decisionSnapshot.pendingPlayerIds.find(
+      (playerId) =>
+        isHuman(state, playerId) && state.decisionSnapshot!.decisions[playerId] === undefined,
+    );
+  }
+  return undefined;
+};
 
 export const selectLegalActions = (
   state: GameState,
-  playerId: PlayerId | undefined = defaultHumanId(state),
+  playerId: PlayerId | undefined = selectActiveHumanId(state),
 ): LegalActions => {
   if (state.phase === 'round-complete') {
     return {
@@ -106,7 +125,7 @@ export const selectLegalActions = (
 
 export const selectDecisionLabels = (
   state: GameState,
-  playerId: PlayerId | undefined = defaultHumanId(state),
+  playerId: PlayerId | undefined = selectActiveHumanId(state),
 ): DecisionLabels | undefined => {
   if (state.round.activePlayerIds.length === 0) return undefined;
   const nextId = nextActivePlayer(

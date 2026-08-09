@@ -2,11 +2,13 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { playersFixture } from '../domain/fixtures';
+import { clearGameState } from './persistence';
 import { useGameController } from './useGameController';
 import { ZERO_TIMING } from './timing';
 
 afterEach(() => {
   vi.useRealTimers();
+  clearGameState();
 });
 
 describe('useGameController', () => {
@@ -82,6 +84,7 @@ describe('useGameController', () => {
         act(() => {
           result.current.submitDecision('seat-0', 'bank');
           result.current.submitDecision('seat-1', 'bank');
+          result.current.advanceDecisions();
         });
       }
       await act(() => vi.runAllTimersAsync());

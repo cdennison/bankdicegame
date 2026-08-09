@@ -28,11 +28,16 @@ export function GameApp() {
 
   const start = (submission: SetupSubmission) => {
     const players: PlayerDefinition[] = [
-      { id: 'human-1', name: submission.humanName, seatIndex: 0, controller: { type: 'human' } },
+      ...submission.humanNames.map((name, index) => ({
+        id: `human-${index + 1}`,
+        name,
+        seatIndex: index,
+        controller: { type: 'human' as const },
+      })),
       ...submission.opponentIds.map((strategyId, index) => ({
         id: `opponent-${strategyId}`,
         name: OPPONENT_PROFILES[strategyId].name,
-        seatIndex: index + 1,
+        seatIndex: submission.humanNames.length + index,
         controller: { type: 'strategy' as const, strategyId },
       })),
     ];

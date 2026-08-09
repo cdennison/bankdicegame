@@ -13,6 +13,7 @@ const controller = vi.hoisted(() => ({
   legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
   currentPlayer: undefined as Record<string, unknown> | undefined,
   decisionLabels: { stay: 'Roll On', bank: 'Bank' },
+  activeHumanId: undefined as string | undefined,
   start: vi.fn(),
   roll: vi.fn(),
   advanceRound: vi.fn(),
@@ -56,6 +57,7 @@ beforeEach(() => {
   controller.rankings = [];
   controller.winners = [];
   controller.currentPlayer = undefined;
+  controller.activeHumanId = undefined;
   controller.start.mockReset();
   controller.reset.mockReset();
   controller.restart.mockReset();
@@ -139,8 +141,8 @@ describe('GameApp', () => {
       });
     render(<GameApp />);
 
-    await user.clear(screen.getByLabelText(/your name/i));
-    await user.type(screen.getByLabelText(/your name/i), 'Rae');
+    await user.clear(screen.getByLabelText(/human player 1 name/i));
+    await user.type(screen.getByLabelText(/human player 1 name/i), 'Rae');
     await user.click(screen.getByRole('button', { name: /select vega/i }));
     await user.click(screen.getByRole('button', { name: /select mira/i }));
     await user.click(screen.getByRole('button', { name: /^start$/i }));
@@ -187,6 +189,7 @@ describe('GameApp', () => {
     };
     controller.rankings = [{ ...human, score: 0, active: true, rank: 1 }];
     controller.currentPlayer = human;
+    controller.activeHumanId = human.id;
     controller.legalActions = {
       canRoll: true,
       canStay: false,
@@ -320,8 +323,8 @@ describe('GameApp', () => {
 
     await user.click(screen.getByRole('button', { name: 'New Game' }));
     rerender(<GameApp />);
-    await user.clear(screen.getByLabelText(/your name/i));
-    await user.type(screen.getByLabelText(/your name/i), 'Rae');
+    await user.clear(screen.getByLabelText(/human player 1 name/i));
+    await user.type(screen.getByLabelText(/human player 1 name/i), 'Rae');
     await user.click(screen.getByRole('button', { name: /select vega/i }));
     await user.type(screen.getByLabelText(/challenge code/i), originalConfig.seedCode);
     await user.click(screen.getByRole('button', { name: /^start$/i }));

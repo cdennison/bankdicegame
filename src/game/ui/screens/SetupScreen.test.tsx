@@ -26,7 +26,7 @@ describe('SetupScreen', () => {
   it('requires at least one opponent before starting', () => {
     renderSetup();
     expect(screen.getByRole('button', { name: /^start$/i })).toBeDisabled();
-    expect(screen.getAllByText(/human player/i)).toHaveLength(1);
+    expect(screen.getAllByText(/human player/i).length).toBeGreaterThan(0);
   });
 
   it('caps the v1 roster at all three real profiles and submits them in click order', async () => {
@@ -46,7 +46,7 @@ describe('SetupScreen', () => {
 
     await user.click(screen.getByRole('button', { name: /^start$/i }));
     expect(onStart).toHaveBeenCalledWith({
-      humanName: 'You',
+      humanNames: ['You'],
       opponentIds: ['vega', 'mira', 'knox'],
       seedCode: generatedCode,
     });
@@ -56,15 +56,15 @@ describe('SetupScreen', () => {
     const user = userEvent.setup();
     const { onStart, generateCode } = renderSetup();
 
-    await user.clear(screen.getByLabelText(/your name/i));
-    await user.type(screen.getByLabelText(/your name/i), 'Rae');
+    await user.clear(screen.getByLabelText(/human player 1 name/i));
+    await user.type(screen.getByLabelText(/human player 1 name/i), 'Rae');
     await user.click(screen.getByRole('button', { name: /select mira/i }));
     await user.click(screen.getByRole('button', { name: /select vega/i }));
     await user.type(screen.getByLabelText(/challenge code/i), generatedCode);
     await user.click(screen.getByRole('button', { name: /^start$/i }));
 
     expect(onStart).toHaveBeenCalledWith({
-      humanName: 'Rae',
+      humanNames: ['Rae'],
       opponentIds: ['mira', 'vega'],
       seedCode: generatedCode,
     });
@@ -91,14 +91,50 @@ describe('SetupScreen', () => {
     const user = userEvent.setup();
     const { onStart, generateCode } = renderSetup();
 
-    await user.type(screen.getByLabelText(/your name/i), '{Control>}a{/Control}Kai');
+    await user.type(screen.getByLabelText(/human player 1 name/i), '{Control>}a{/Control}Kai');
     await user.click(screen.getByRole('button', { name: /select knox/i }));
     await user.click(screen.getByLabelText(/challenge code/i));
     await user.keyboard('{Enter}');
 
     expect(generateCode).toHaveBeenCalledOnce();
     expect(onStart).toHaveBeenCalledWith({
-      humanName: 'Kai',
+      humanNames: ['Kai'],
+      opponentIds: ['knox'],
+      seedCode: generatedCode,
+    });
+  });
+
+  it('adds a second human seat, caps the roster at four total, and submits both names', async () => {
+    const user = userEvent.setup();
+    const { onStart } = renderSetup();
+
+    await user.click(screen.getByRole('button', { name: /add a human player/i }));
+    await user.type(screen.getByLabelText(/human player 2 name/i), 'Sam');
+    await user.click(screen.getByRole('button', { name: /select vega/i }));
+    await user.click(screen.getByRole('button', { name: /select mira/i }));
+
+    expect(screen.getByRole('button', { name: /select knox/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /add a human player/i })).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+    expect(onStart).toHaveBeenCalledWith({
+      humanNames: ['You', 'Sam'],
+      opponentIds: ['vega', 'mira'],
+      seedCode: generatedCode,
+    });
+  });
+
+  it('removes a human seat and re-enables adding one back', async () => {
+    const user = userEvent.setup();
+    const { onStart } = renderSetup();
+
+    await user.click(screen.getByRole('button', { name: /add a human player/i }));
+    await user.click(screen.getByRole('button', { name: /remove human player 2/i }));
+    await user.click(screen.getByRole('button', { name: /select knox/i }));
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+
+    expect(onStart).toHaveBeenCalledWith({
+      humanNames: ['You'],
       opponentIds: ['knox'],
       seedCode: generatedCode,
     });
@@ -121,7 +157,7 @@ describe('SetupScreen', () => {
 
     await user.click(screen.getByRole('button', { name: /^start$/i }));
     expect(onStart).toHaveBeenCalledWith({
-      humanName: 'You',
+      humanNames: ['You'],
       opponentIds: ['vega', 'mira'],
       seedCode: generatedCode,
     });

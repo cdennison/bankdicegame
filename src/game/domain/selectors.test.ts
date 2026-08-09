@@ -4,6 +4,7 @@ import { freezeDecisionSnapshot } from './decisions';
 import { fourSeatFixture, stateAtDecision } from './fixtures';
 import { createGame } from './reducer';
 import {
+  selectActiveHumanId,
   selectCurrentPlayer,
   selectDecisionLabels,
   selectLegalActions,
@@ -161,5 +162,62 @@ describe('game selectors', () => {
     });
 
     expect(selectLegalActions(state, 'human').canAdvanceRound).toBe(false);
+  });
+
+  describe('selectActiveHumanId (hot-seat resolution across multiple humans)', () => {
+    it('returns the human whose turn it is to roll', () => {
+      const initial = createGame(fourSeatFixture());
+      const state = withState(initial, {
+        round: Object.freeze({ ...initial.round, currentPlayerId: 'guest' }),
+      });
+
+      expect(selectActiveHumanId(state)).toBe('guest');
+    });
+
+    it('returns undefined while a strategy seat is on the clock', () => {
+      const initial = createGame(fourSeatFixture());
+      const state = withState(initial, {
+        round: Object.freeze({ ...initial.round, currentPlayerId: 'mira' }),
+      });
+
+      expect(selectActiveHumanId(state)).toBeUndefined();
+    });
+
+    it('serializes two pending humans one at a time during awaiting-decisions', () => {
+      const initial = stateAtDecision(fourSeatFixture(), { pot: 40, scores: [0, 0, 0, 0] });
+      const snapshot = freezeDecisionSnapshot(initial);
+      const bothPending = withState(initial, { decisionSnapshot: snapshot });
+
+      expect(snapshot.pendingPlayerIds).toEqual(['human', 'mira', 'guest', 'vega']);
+      expect(selectActiveHumanId(bothPending)).toBe('human');
+
+      const humanDecided = withState(initial, {
+        decisionSnapshot: Object.freeze({
+          ...snapshot,
+          decisions: Object.freeze({ human: 'stay' as const }),
+        }),
+      });
+
+      expect(selectActiveHumanId(humanDecided)).toBe('guest');
+    });
+
+    it('feeds the resolved active human into legal actions and decision labels without an explicit id', () => {
+      const initial = stateAtDecision(fourSeatFixture(), { pot: 40, scores: [0, 0, 0, 0] });
+      const snapshot = freezeDecisionSnapshot(initial);
+      const state = withState(initial, {
+        decisionSnapshot: Object.freeze({
+          ...snapshot,
+          decisions: Object.freeze({ human: 'stay' as const }),
+        }),
+      });
+
+      expect(selectLegalActions(state)).toEqual({
+        canRoll: false,
+        canStay: true,
+        canBank: true,
+        canAdvanceRound: false,
+      });
+      expect(selectDecisionLabels(state)).toEqual({ stay: 'Roll On', bank: 'Bank' });
+    });
   });
 });

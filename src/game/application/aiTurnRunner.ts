@@ -49,13 +49,6 @@ export const delay = (ms: number, signal: AbortSignal): Promise<void> => {
 const isStrategy = (state: GameState, playerId: string): boolean =>
   state.config.players.find(({ id }) => id === playerId)?.controller.type === 'strategy';
 
-const hasPendingHuman = (state: GameState): boolean =>
-  state.decisionSnapshot?.pendingPlayerIds.some((playerId) =>
-    state.config.players.some(
-      ({ id, controller }) => id === playerId && controller.type === 'human',
-    ),
-  ) ?? false;
-
 const playerName = (state: GameState, playerId: string): string =>
   state.config.players.find(({ id }) => id === playerId)?.name ?? 'Player';
 
@@ -151,7 +144,10 @@ export const runAutomaticTurn = async (
     return;
   }
 
-  if (state.phase === 'awaiting-decisions' && !hasPendingHuman(state)) {
+  if (
+    state.phase === 'awaiting-decisions' &&
+    !state.config.players.some(({ controller: owner }) => owner.type === 'human')
+  ) {
     controller.dispatch({ type: 'RESOLVE_STRATEGY_DECISIONS' });
     return;
   }

@@ -41,3 +41,4 @@ qa/
 .vercel
 test-results/
 playwright-report/
+.env*.local

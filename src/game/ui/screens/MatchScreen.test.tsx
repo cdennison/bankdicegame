@@ -49,12 +49,14 @@ const controller = (overrides: Partial<GameController> = {}): GameController => 
   legalActions: { canRoll: true, canStay: false, canBank: false, canAdvanceRound: false },
   currentPlayer: players[0],
   decisionLabels: { stay: 'Roll On', bank: 'Bank' },
+  activeHumanId: 'human-1',
   start: vi.fn(),
   roll: vi.fn(),
   submitDecision: vi.fn(),
   restart: vi.fn(),
   reset: vi.fn(),
   advanceRound: vi.fn(),
+  advanceDecisions: vi.fn(),
   ...overrides,
 });
 
@@ -129,20 +131,46 @@ describe('MatchScreen', () => {
     expect(value.roll).toHaveBeenCalledOnce();
   });
 
-  it.each(['Roll On', 'Stay In'] as const)('uses the derived %s decision label', async (label) => {
+  it('offers a Continue button during decisions and advances the engine-owned decision phase', async () => {
     const user = userEvent.setup();
     const value = controller({
-      state: state({ phase: 'awaiting-decisions' }),
-      legalActions: { canRoll: false, canStay: true, canBank: true, canAdvanceRound: false },
-      decisionLabels: { stay: label, bank: 'Bank' },
+      state: state({
+        phase: 'awaiting-decisions',
+        decisionSnapshot: {
+          pot: 42,
+          scores: {},
+          activePlayerIds: players.map(({ id }) => id),
+          pendingPlayerIds: players.map(({ id }) => id),
+          decisions: {},
+        },
+      }),
+      legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
     });
     render(<MatchScreen controller={value} />);
 
-    await user.click(screen.getByRole('button', { name: label }));
-    await user.click(screen.getByRole('button', { name: 'Bank' }));
-    expect(value.submitDecision).toHaveBeenNthCalledWith(1, 'human-1', 'stay');
-    expect(value.submitDecision).toHaveBeenNthCalledWith(2, 'human-1', 'bank');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(value.advanceDecisions).toHaveBeenCalledOnce();
   });
+
+  it.each(['Roll On', 'Stay In'] as const)(
+    'offers large Roll/Continue and Bank buttons for a solo human decision (%s)',
+    async (stay) => {
+      const user = userEvent.setup();
+      const value = controller({
+        state: state({ phase: 'awaiting-decisions' }),
+        legalActions: { canRoll: false, canStay: true, canBank: true, canAdvanceRound: false },
+        decisionLabels: { stay, bank: 'Bank' },
+      });
+      render(<MatchScreen controller={value} />);
+
+      expect(screen.queryByLabelText(/^Bank for /)).not.toBeInTheDocument();
+      const stayButton = screen.getByRole('button', { name: stay === 'Roll On' ? 'Roll' : 'Continue' });
+      await user.click(stayButton);
+      expect(value.submitDecision).toHaveBeenCalledWith('human-1', 'stay');
+      await user.click(screen.getByRole('button', { name: 'Bank' }));
+      expect(value.submitDecision).toHaveBeenCalledWith('human-1', 'bank');
+    },
+  );
 
   it('shows automatic play instead of controls while AI acts', () => {
     render(<MatchScreen controller={controller({
@@ -294,6 +322,97 @@ describe('MatchScreen', () => {
 
     expect(screen.getByRole('status', { name: 'Current pot' })).toHaveTextContent(/^Pot: 50 points$/);
     expect(screen.queryByText('Mira is rolling.')).not.toBeInTheDocument();
+  });
+
+  describe('hot-seat handoff between multiple human players', () => {
+    const twoHumans: PlayerDefinition[] = [
+      { id: 'human-1', name: 'Alex', seatIndex: 0, controller: { type: 'human' } },
+      { id: 'human-2', name: 'Sam', seatIndex: 1, controller: { type: 'human' } },
+      { id: 'ai-0', name: 'Vega', seatIndex: 2, controller: { type: 'strategy', strategyId: 'vega' } },
+    ];
+    const hotSeatConfig = { rounds: 10 as const, seedCode: 'BK1-AAKD-JXV2', players: twoHumans };
+    const hotSeatState = (overrides: Partial<GameState> = {}): GameState => ({
+      config: hotSeatConfig,
+      players: twoHumans.map(({ id }) => ({ id, score: 0, active: true })),
+      phase: 'awaiting-roll',
+      round: {
+        roundNumber: 1,
+        pot: 0,
+        rollNumber: 0,
+        dangerRolls: 0,
+        activePlayerIds: twoHumans.map(({ id }) => id),
+        currentPlayerId: 'human-1',
+        lastDangerRollWasDouble: false,
+      },
+      random: { version: 1, seed: 1, value: 1, draws: 0 },
+      firstStarterIndex: 0,
+      ...overrides,
+    });
+
+    it('does not prompt a handoff for the very first human turn of a match', () => {
+      render(<MatchScreen controller={controller({
+        state: hotSeatState(),
+        legalActions: { canRoll: true, canStay: false, canBank: false, canAdvanceRound: false },
+        activeHumanId: 'human-1',
+      })} />);
+
+      expect(screen.getByRole('button', { name: 'Roll' })).toBeEnabled();
+      expect(screen.queryByText(/pass the device/i)).not.toBeInTheDocument();
+    });
+
+    it('requires a handoff confirmation before revealing the next human seat', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(<MatchScreen controller={controller({
+        state: hotSeatState(),
+        legalActions: { canRoll: true, canStay: false, canBank: false, canAdvanceRound: false },
+        activeHumanId: 'human-1',
+      })} />);
+      expect(screen.getByRole('button', { name: 'Roll' })).toBeEnabled();
+
+      rerender(<MatchScreen controller={controller({
+        state: hotSeatState({
+          round: { ...hotSeatState().round, currentPlayerId: 'human-2' },
+        }),
+        legalActions: { canRoll: true, canStay: false, canBank: false, canAdvanceRound: false },
+        activeHumanId: 'human-2',
+      })} />);
+
+      expect(screen.queryByRole('button', { name: 'Roll' })).not.toBeInTheDocument();
+      const handoff = screen.getByRole('region', { name: 'Pass the device' });
+      expect(handoff).toHaveTextContent('Pass the device to Sam');
+
+      await user.click(screen.getByRole('button', { name: "I'm ready" }));
+      expect(screen.getByRole('button', { name: 'Roll' })).toBeEnabled();
+      expect(screen.queryByText(/pass the device/i)).not.toBeInTheDocument();
+    });
+
+    it('offers a bank icon per pending human in the scoreboard, and only a Continue button in the dock', async () => {
+      const user = userEvent.setup();
+      const value = controller({
+        state: hotSeatState({
+          phase: 'awaiting-decisions',
+          decisionSnapshot: {
+            pot: 42,
+            scores: {},
+            activePlayerIds: twoHumans.map(({ id }) => id),
+            pendingPlayerIds: twoHumans.map(({ id }) => id),
+            decisions: {},
+          },
+        }),
+        rankings: twoHumans.map((player, index) => ({ ...player, score: 0, active: true, rank: index + 1 })),
+        legalActions: { canRoll: false, canStay: false, canBank: false, canAdvanceRound: false },
+      });
+      render(<MatchScreen controller={value} />);
+
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Bank' })).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Bank for Sam' }));
+      expect(value.submitDecision).toHaveBeenCalledWith('human-2', 'bank');
+
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      expect(value.advanceDecisions).toHaveBeenCalledOnce();
+    });
   });
 
   it('keeps restart keyboard focus modal, handles Escape, and restores the trigger', async () => {

@@ -1,17 +1,27 @@
 import type { CSSProperties } from 'react';
 
 import type { RankedPlayer } from '../../domain/selectors';
+import type { PlayerId } from '../../domain/types';
 import type { OpponentProfile } from '../../strategies/reveals';
+import { Icon } from './Icon';
 
 interface ScoreboardProps {
   readonly rankings: readonly RankedPlayer[];
   readonly currentPlayerId: string;
   readonly profiles: Readonly<Record<string, OpponentProfile>>;
+  readonly pendingHumanIds?: readonly PlayerId[];
+  onBank?(playerId: PlayerId): void;
 }
 
 const HUMAN_ACCENT = '#ffd84d';
 
-export function Scoreboard({ rankings, currentPlayerId, profiles }: ScoreboardProps) {
+export function Scoreboard({
+  rankings,
+  currentPlayerId,
+  profiles,
+  pendingHumanIds = [],
+  onBank = () => undefined,
+}: ScoreboardProps) {
   return (
     <section className="scoreboard-wrap" aria-labelledby="scoreboard-heading">
       <div className="scoreboard-heading">
@@ -27,6 +37,7 @@ export function Scoreboard({ rankings, currentPlayerId, profiles }: ScoreboardPr
             '--row-color': profile?.accent ?? HUMAN_ACCENT,
           } as CSSProperties;
           const isCurrent = player.id === currentPlayerId;
+          const canBankNow = pendingHumanIds.includes(player.id);
           return (
             <li className={`score-row${isCurrent ? ' current' : ''}`} key={player.id} style={style}>
               <span className="score-rank">#{player.rank}</span>
@@ -35,6 +46,16 @@ export function Scoreboard({ rankings, currentPlayerId, profiles }: ScoreboardPr
                 <span>{player.active ? 'Active' : 'Banked'}{isCurrent ? ' · rolling' : ''}</span>
               </span>
               <strong className="score-value">{player.score}</strong>
+              {canBankNow ? (
+                <button
+                  className="score-bank-button"
+                  type="button"
+                  aria-label={`Bank for ${player.name}`}
+                  onClick={() => onBank(player.id)}
+                >
+                  <Icon name="bank" />
+                </button>
+              ) : null}
             </li>
           );
         })}
